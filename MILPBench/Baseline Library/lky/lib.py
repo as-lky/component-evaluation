@@ -1,10 +1,9 @@
 import numpy as np
 from GCN import postion_get
 from helper import get_a_new2
-
+import torch 
 
 # component parameters
-
 
 class Component:
     def __init__(self):
@@ -18,16 +17,23 @@ class Component:
 
 
 class Graphencode(Component):
-    def getnew2(self, ins_name_to_read):  # TODO : check the type of ins_name_to_read
+    def getnew2(self, task_type, ins_name_to_read):  # TODO : check the type of ins_name_to_read
         A, v_map, v_nodes, c_nodes, b_vars = get_a_new2(ins_name_to_read)
         constraint_features = c_nodes.cpu()
         constraint_features[np.isnan(constraint_features)] = 1  # remove nan value
         variable_features = v_nodes
-        if TaskName == "IP":
-            variable_features = postion_get(variable_features)
+        if task_type == "IP":
+            variable_features = postion_get(variable_features) # position ? 
         edge_indices = A._indices()
         edge_features = A._values().unsqueeze(1)
         edge_features = torch.ones(edge_features.shape)
+        return constraint_features, edge_indices, edge_features, variable_features
+    
+    def getnew3(self, task_type, ins_name_to_read):
+        ... # TODO : get tripartite graph code
+
+
+
 
 
 class Predict(Component):
@@ -36,6 +42,9 @@ class Predict(Component):
         return output
 
 
+class Predict_Modify_Search(Component):
+    def work(self, input, *args):
+        
 class Search(Component):
     def work(self, input, *args):
         output = 3
