@@ -32,21 +32,30 @@ class Graphencode(Component):
     def getnew3(self, task_type, ins_name_to_read):
         ... # TODO : get tripartite graph code
 
-
-
-
-
-class Predict(Component):
+    def work(self, input, *args):
+        ... #
+        
+class Predict(Component): # 提供实例
+    def GNNPredict(self, input, *args): # 接受问题实例
+        # train
+        # infer
+        ...    
     def work(self, input, *args):
         output = 2
         return output
 
 
 class Predict_Modify_Search(Component):
+    
+    def add_radius_constraint(self): # 接受predict结果
+        
+        ...
     def work(self, input, *args):
+    
         
 class Search(Component):
-    def work(self, input, *args):
+    def Solver(self) : # TODO : check 其接受什么东西
+    def work(self, input, *args): 
         output = 3
         return output
 
