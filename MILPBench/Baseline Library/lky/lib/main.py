@@ -19,7 +19,7 @@ parser.add_argument("--predict", required=True, choices=["gcn"], help="predict c
 # search for model firstly
 
 parser.add_argument("--modify", required=True, choices=["default"], help="modify component")
-parser.add_argument("--search", required=True, choices=["default"], help="search component")
+parser.add_argument("--search", required=True, choices=["gurobi", "SCIP"], help="search component")
 
 if __name__ == "__main__":
     args = parser.parse_args()
