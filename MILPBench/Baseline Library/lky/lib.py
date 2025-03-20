@@ -3,6 +3,12 @@ from GCN import postion_get
 from helper import get_a_new2
 import torch 
 
+
+
+# 哪些内容物需要全局提供? 一些路径提供训练测试样本 原始问题 
+
+problem_instance = f'./instance/1'
+
 # component parameters
 
 class Component:
@@ -47,9 +53,9 @@ class Predict(Component): # 提供实例
 
 class Predict_Modify_Search(Component):
     
-    def add_radius_constraint(self): # 接受predict结果
+    def add_radius_constraint(self): # 接受 原问题 和 predict结果 
         
-        ...
+        
     def work(self, input, *args):
     
         
