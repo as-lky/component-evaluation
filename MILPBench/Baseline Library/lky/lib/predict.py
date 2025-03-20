@@ -1,37 +1,17 @@
 import torch
-from mod import Component, LayerConvey
+from typing import Type
+from mod import Component, Graphencode2Predict, Predict2Modify
 
-class Preprocess2Predict(LayerConvey):
-    def __init__(self, log_folder): # log_folder
-        self.log_folder = log_folder
-        
-    
-
-class Predict(Component): # 提供实例
-    def GNNPredict(self, input, *args): # 接受问题实例
-        # train
-        # infer
-        ...    
-    def work(self, input, *args):
-        output = 2
-        return output
-
-        
-
-class Preprocess(Component):
-    def preprocess(self, task_type, ins_name_to_read):
-        
-        
-        
-        ...
-        
-        
-    def work(self, input, *args): # args: DEVICE TASK_TYPE TASK_NAME 
-        if args[0] == "cuda":
-            if torch.cuda.is_available():
-                self.DEVICE = torch.device("cuda:0")
-            else :
-                assert False, "CUDA is not available"
+class Predict(Component):
+    def __new__(cls, component, *args, **kwargs):
+        if component == "gcn":
+            return super().__new__(GCN, *args, **kwargs)
         else :
-            self.DEVICE = torch.device("cpu")
+            raise ValueError("Predict component type is not defined")
+
+class GCN(Predict):
+    def __init__(self, component, *args, **kwargs):
+        ... # tackle parameters
+        
+    def work(self, input: Type[Graphencode2Predict]) -> Type[Predict2Modify]:        
         
