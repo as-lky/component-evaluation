@@ -1,12 +1,9 @@
 class Component:
-    def __init__(self):
-        pass
-
-    def work(
-        self, input, *args
-    ):  # args are the component select parameters, which should be interpreted and correspended to the input
-        output = 1
-        return output
+    def __init__(self, device, taskname, instance, sequence_name):
+        self.device = device
+        self.taskname = taskname
+        self.instance = instance
+        self.sequence_name = sequence_name
 
 class LayerConvey:
     ...
@@ -14,22 +11,15 @@ class LayerConvey:
 
 
 class Init2Preprocess(LayerConvey):
-    def __init__(self, device, taskname, instance):
-        self.device = device
-        self.taskname = taskname
-        self.instance = instance
-
+    def __init__(self):
+        ...
+        
 class Preprocess2Graphencode(LayerConvey):
-    def __init__(self, device, taskname, instance):
-        self.device = device
-        self.taskname = taskname
-        self.instance = instance
-    
+    def __init__(self):
+        ...
+        
 class Graphencode2Predict(LayerConvey):
-    def __init__(self, device, taskname, instance, constraint_features, edge_indices, edge_features, variable_features, v_map, v_nodes, c_nodes, b_vars):
-        self.device = device
-        self.taskname = taskname
-        self.instance = instance
+    def __init__(self, constraint_features, edge_indices, edge_features, variable_features, v_map, v_nodes, c_nodes, b_vars):
         self.constraint_features = constraint_features 
         self.edge_indices = edge_indices
         self.edge_features = edge_features
@@ -40,18 +30,12 @@ class Graphencode2Predict(LayerConvey):
         self.b_vars = b_vars
         
 class Predict2Modify(LayerConvey):
-    def __init__(self, device, taskname, instance):
-        self.device = device
-        self.taskname = taskname
-        self.instance = instance
-
+    def __init__(self, b_vars, scores):
+        self.b_vars = b_vars
+        self.scores = scores
         
 class Modify2Search(LayerConvey):
-    def __init__(self, device, taskname, instance):
-        self.device = device
-        self.taskname = taskname
-        self.instance = instance
-
+    ...
         
 
         

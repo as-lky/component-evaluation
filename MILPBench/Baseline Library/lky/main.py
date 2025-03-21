@@ -1,11 +1,11 @@
 import torch
 import argparse
-from mod import Init2Preprocess
-from preprocess import Preprocess
-from graphencode import Graphencode
-from predict import Predict
-from modify import Modify
-from search import Search
+from lib.mod import Init2Preprocess
+from lib.preprocess import Preprocess
+from lib.graphencode import Graphencode
+from lib.predict import Predict
+from lib.modify import Modify
+from lib.search import Search
 
 parser = argparse.ArgumentParser(description=" receive select instruction from higher level")
 parser.add_argument("--device", required=True, choices=["cpu", "cuda"], help="cpu or cuda")
@@ -18,8 +18,8 @@ parser.add_argument("--graphencode", required=True, choices=["bi, tri"], help="g
 parser.add_argument("--predict", required=True, choices=["gcn"], help="predict component")
 # search for model firstly
 
-parser.add_argument("--modify", required=True, choices=["default"], help="modify component")
-parser.add_argument("--search", required=True, choices=["gurobi", "SCIP"], help="search component")
+parser.add_argument("--modify", required=True, choices=["np"], help="modify component")
+parser.add_argument("--search", required=True, choices=["gurobi", "scip"], help="search component")
 
 if __name__ == "__main__":
     args = parser.parse_args()
