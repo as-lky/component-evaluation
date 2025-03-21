@@ -1,7 +1,7 @@
 import torch
 import os
 from typing import Type
-from mod import Component, Graphencode2Predict, Predict2Modify
+from mod import Component, Graphencode2Predict, Predict2Modify, Scores
 
 class Predict(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -22,9 +22,11 @@ class GCN(Predict):
         super().__init__(device, taskname, instance, sequence_name)
         ... # tackle parameters 
  
-    def work(self, input: Type[Graphencode2Predict]) -> Type[Predict2Modify]:        
+    def work(self, input: Type[Graphencode2Predict]) -> Type[Scores]:    
+        
+        self.begin()
         # first check the model, if there is not then train using train instances
-        if self.taskname =="IP":
+        if self.taskname == "IP":
             #Add position embedding for IP model, due to the strong symmetry
             from help.GCN import GNNPolicy_position as GNNPolicy
         else:
@@ -36,6 +38,7 @@ class GCN(Predict):
             pathstr = f'./Model/{self.taskname}/GCN_predict.pth'
         else :
             ...
+            # LP instance dir TRAIN train dir
             # train! TODO
         policy = GNNPolicy().to(DEVICE)
         state = torch.load(pathstr, map_location=torch.device('cuda:0')) # why cuda?
@@ -55,4 +58,5 @@ class GCN(Predict):
         scores=[] # get a list of (index, VariableName, Prob)
         for i in range(len(input.v_map)):
             scores.append([i, all_varname[i], BD[i].item()])
-        return Predict2Modify(input.b_vars, scores)
+        self.end()
+        return Scores(input.b_vars, scores)

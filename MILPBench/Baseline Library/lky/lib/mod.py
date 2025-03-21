@@ -5,6 +5,13 @@ class Component:
         self.instance = instance
         self.sequence_name = sequence_name
 
+    def begin(self):
+        print(f" {self.__class__.__bases__[0].__name__} Component {self.__class__.__name__} is working ...")
+    
+    def end(self):
+        print(f" {self.__class__.__bases__[0].__name__} Component {self.__class__.__name__} is done.")
+    
+
 class LayerConvey:
     ...
 # For Component, the parameters from outside are the select args; from front layer are the instance processing result
@@ -33,10 +40,19 @@ class Predict2Modify(LayerConvey):
     def __init__(self, b_vars, scores):
         self.b_vars = b_vars
         self.scores = scores
-        
+    
+    
 class Modify2Search(LayerConvey):
-    ...
+    ... # nothing to do
         
 
+class Cansol(Modify2Search):
+    def __init__(self, cansol): # a sol which can be used
+        self.cansol = cansol
+        
+class Scores(Modify2Search):
+    def __init__(self, b_vars, scores): # predicted scores
+        self.b_vars = b_vars
+        self.scores = scores
         
 

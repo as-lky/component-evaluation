@@ -26,6 +26,9 @@ class Bipartite(Graphencode):
         ... # tackle parameters
         
     def work(self, input: Type[Preprocess2Graphencode]) -> Type[Graphencode2Predict]:
+        
+        self.begin()
+        
         A, v_map, v_nodes, c_nodes, b_vars = get_a_new2(self.instance)
         constraint_features = c_nodes.cpu()
         constraint_features[np.isnan(constraint_features)] = 1  # remove nan value
@@ -35,6 +38,9 @@ class Bipartite(Graphencode):
         edge_indices = A._indices()
         edge_features = A._values().unsqueeze(1)
         edge_features = torch.ones(edge_features.shape)
+
+        self.end()
+        
         return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
             v_map, v_nodes, c_nodes, b_vars )
 
@@ -46,6 +52,9 @@ class Tripartite(Graphencode):
         ... # tackle parameters
         
     def work(self, input: Type[Preprocess2Graphencode]) -> Type[Graphencode2Predict]:
+        
+        self.begin()
+        
         A, v_map, v_nodes, c_nodes, b_vars = get_a_new2(self.instance)
         constraint_features = c_nodes.cpu()
         constraint_features[np.isnan(constraint_features)] = 1  # remove nan value
@@ -55,5 +64,8 @@ class Tripartite(Graphencode):
         edge_indices = A._indices()
         edge_features = A._values().unsqueeze(1)
         edge_features = torch.ones(edge_features.shape)
+
+        self.end()
+        
         return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
             v_map, v_nodes, c_nodes, b_vars )

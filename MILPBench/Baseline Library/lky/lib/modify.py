@@ -36,6 +36,7 @@ class Np(Modify): # build a new problem based on the prediction
         # tackle parameters    
 
     def work(self, input: Type[Predict2Modify]) -> Type[Modify2Search]:
+        self.begin()
         b_vars = input.b_vars
         scores = input.scores
         binary_name = [scores[i][1] for i in b_vars]
@@ -63,6 +64,6 @@ class Np(Modify): # build a new problem based on the prediction
             if count0 < self.k_0:
                 scores[i][3] = 0
                 count0 += 1
-
+        self.end()
         return Modify2Search(scores)
         
