@@ -16,7 +16,6 @@ class LayerConvey:
     ...
 # For Component, the parameters from outside are the select args; from front layer are the instance processing result
 
-
 class Init2Preprocess(LayerConvey):
     def __init__(self):
         ...
@@ -47,8 +46,10 @@ class Modify2Search(LayerConvey):
         
 
 class Cansol(Modify2Search):
-    def __init__(self, cansol): # a sol which can be used
+    def __init__(self, objval, cansol): # a sol which can be used
+        self.objval = objval
         self.cansol = cansol
+        
         
 class Scores(Modify2Search):
     def __init__(self, b_vars, scores): # predicted scores
