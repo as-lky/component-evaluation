@@ -16,7 +16,7 @@ class LayerConvey:
     ...
 # For Component, the parameters from outside are the select args; from front layer are the instance processing result
 
-class Init2Preprocess(LayerConvey):
+class Init2Preprocess(LayerConvey): # preprocess for work directory nothing more
     def __init__(self):
         ...
         
@@ -24,7 +24,7 @@ class Preprocess2Graphencode(LayerConvey):
     def __init__(self):
         ...
         
-class Graphencode2Predict(LayerConvey):
+class Graphencode2Predict(LayerConvey): # TODO : no generalization
     def __init__(self, constraint_features, edge_indices, edge_features, variable_features, v_map, v_nodes, c_nodes, b_vars):
         self.constraint_features = constraint_features 
         self.edge_indices = edge_indices

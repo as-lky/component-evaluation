@@ -1,6 +1,6 @@
 import torch
 from typing import Type
-from mod import Component, Predict2Modify, Modify2Search
+from mod import Component, Predict2Modify, Modify2Search, Cansol, 
         
 
 class Modify(Component):

@@ -28,6 +28,8 @@ class Search(Component):
             return super().__new__(MIH, device, taskname, instance, sequence_name, *args, **kwargs)
         elif component == "LNS":
             return super().__new__(LNS, device, taskname, instance, sequence_name, *args, **kwargs)
+        elif component == "NALNS":
+            return super().__new__(NALNS, device, taskname, instance, sequence_name, *args, **kwargs)
         else:
             raise ValueError("Search component type is not defined")
         
@@ -260,7 +262,7 @@ class LNS(Search):
         self.end()
         return ans, time.time() - begin_time # TODO: modify return
 
-class NA_LNS(Search):
+class NALNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super.__init__(device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 3600)
