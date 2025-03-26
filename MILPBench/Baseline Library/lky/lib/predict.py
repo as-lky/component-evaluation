@@ -1,20 +1,21 @@
 import torch
 import os
-from typing import Type
-from mod import Component, Graphencode2Predict, Predict2Modify, Scores
+from typing import Type, cast, Self
+from mod import Component, Graphencode2Predict, Predict2Modify, PScores
 
 class Predict(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
         if component == "gcn":
-            return super().__new__(GCN, device, taskname, instance, sequence_name, *args, **kwargs)
+            cls = GCN
         else :
             raise ValueError("Predict component type is not defined")
+        return super().__new__( cast(type[Self], cls) )
 
     def __init__(self, device, taskname, instance, sequence_name):
         super().__init__(device, taskname, instance, sequence_name)
 
-    def work(self, input: Type[Graphencode2Predict]) -> Type[Predict2Modify]:        
-        pass
+
+    def work(self, input: Graphencode2Predict) -> Predict2Modify:...
 
 class GCN(Predict):
         
@@ -22,7 +23,7 @@ class GCN(Predict):
         super().__init__(device, taskname, instance, sequence_name)
         ... # tackle parameters 
  
-    def work(self, input: Type[Graphencode2Predict]) -> Type[Scores]:    
+    def work(self, input: Graphencode2Predict) -> PScores:    
         
         self.begin()
         # first check the model, if there is not then train using train instances
@@ -34,6 +35,7 @@ class GCN(Predict):
         
         DEVICE = self.device     
         
+        pathstr = ""
         if os.path.exists(f'./Model/{self.taskname}/GCN_predict.pth'): # TODO : add parameter for model name
             pathstr = f'./Model/{self.taskname}/GCN_predict.pth'
         else :
@@ -59,4 +61,4 @@ class GCN(Predict):
         for i in range(len(input.v_map)):
             scores.append([i, all_varname[i], BD[i].item()])
         self.end()
-        return Scores(input.b_vars, scores)
+        return PScores(input.b_vars, scores)

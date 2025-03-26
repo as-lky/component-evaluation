@@ -4,9 +4,9 @@ from typing import Type
 
 class Preprocess(Component): # no usage for now
     def __init__(self, device, taskname, instance, sequence_name):
-        super.__init__(device, taskname, instance, sequence_name)
+        super().__init__(device, taskname, instance, sequence_name)
     
-    def work(self, input: Type[Init2Preprocess]) -> Type[Preprocess2Graphencode]:
+    def work(self, input: Init2Preprocess) -> Preprocess2Graphencode:
         
         print('Preprocess Component is working ...')
         

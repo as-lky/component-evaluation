@@ -3,7 +3,7 @@ class Component:
         self.device = device
         self.taskname = taskname
         self.instance = instance
-        self.sequence_name = sequence_name
+        self.sequence_name = sequence_name # sequence_name is whole components sequence name 
 
     def begin(self):
         print(f" {self.__class__.__bases__[0].__name__} Component {self.__class__.__name__} is working ...")
@@ -51,7 +51,18 @@ class Cansol(Modify2Search):
         self.cansol = cansol
         
         
-class Scores(Modify2Search):
+class PScores(Predict2Modify):
+    def __init__(self, b_vars, scores): # predicted scores
+        self.b_vars = b_vars
+        self.scores = scores
+        
+class MScores(Modify2Search):
+    def __init__(self, scores): # predicted scores
+        self.scores = scores
+        
+        
+
+class Scores(Predict2Modify):
     def __init__(self, b_vars, scores): # predicted scores
         self.b_vars = b_vars
         self.scores = scores

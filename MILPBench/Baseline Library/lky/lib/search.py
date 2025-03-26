@@ -11,39 +11,41 @@ from help.NALNS.help import greedy_one as greedy_one_NALNS, split_problem as spl
 from help.LNS.help import split_problem as split_problem_LNS
 
 from pyscipopt import SCIP_PARAMSETTING
-from typing import Type
-from mod import Component, Modify2Search, Cansol, Scores
+from typing import Self, Type, cast
+from mod import Component, Modify2Search, Cansol, MScores
 from gurobipy import GRB
 
 
 class Search(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
         if component == "scip":
-            return super().__new__(SCIP, device, taskname, instance, sequence_name, *args, **kwargs)
+            cls = SCIP
         elif component == "gurobi":
-            return super().__new__(Gurobi, device, taskname, instance, sequence_name, *args, **kwargs)
+            cls = Gurobi
         elif component == "LIH":
-            return super().__new__(LIH, device, taskname, instance, sequence_name, *args, **kwargs)
+            cls = LIH
         elif component == "MIH":
-            return super().__new__(MIH, device, taskname, instance, sequence_name, *args, **kwargs)
+            cls = MIH
         elif component == "LNS":
-            return super().__new__(LNS, device, taskname, instance, sequence_name, *args, **kwargs)
+            cls = LNS
         elif component == "NALNS":
-            return super().__new__(NALNS, device, taskname, instance, sequence_name, *args, **kwargs)
+            cls = NALNS
         else:
             raise ValueError("Search component type is not defined")
+
+        return super().__new__( cast(type[Self], cls) )
         
     def __init__(self, device, taskname, instance, sequence_name):
-        super.__init__(device, taskname, instance, sequence_name)
+        super().__init__(device, taskname, instance, sequence_name)
         
         
 class LIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super.__init__(device, taskname, instance, sequence_name)
+        super().__init__(device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 3600)
         ... # tackle parameters
 
-    def work(self, input: Type[Cansol]):
+    def work(self, input: Cansol):
         self.begin()
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_LIH(self.instance)
         new_sol = input.cansol
@@ -86,11 +88,11 @@ class LIH(Search):
  
 class MIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super.__init__(device, taskname, instance, sequence_name)
+        super().__init__(device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 3600)
         ... # tackle parameters
 
-    def work(self, input: Type[Cansol]):
+    def work(self, input: Cansol):
         self.begin()
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_MIH(self.instance)
         time_limit = self.time_limit
@@ -133,14 +135,14 @@ class MIH(Search):
         
 class LNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super.__init__(device, taskname, instance, sequence_name)
+        super().__init__(device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 3600)
         self.block = kwargs.get("block", 4)
         self.max_turn_ratio = kwargs.get("max_turn_ratio", 0.01)
         
         ... # tackle parameters
 
-    def work(self, input: Type[Cansol]):
+    def work(self, input: Cansol):
         self.begin()
         
         time_limit = self.time_limit
@@ -264,12 +266,12 @@ class LNS(Search):
 
 class NALNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super.__init__(device, taskname, instance, sequence_name)
+        super().__init__(device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 3600)
         
         ... # tackle parameters
 
-    def work(self, input: Type[Cansol]):
+    def work(self, input: Cansol):
         
         self.begin()
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_NALNS(self.instance)
@@ -318,7 +320,7 @@ class NALNS(Search):
 class Gurobi(Search): # solver
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super.__init__(device, taskname, instance, sequence_name)
+        super().__init__(device, taskname, instance, sequence_name)
         ... # tackle parameters
 
     def work(self, input: Type[Modify2Search]):
@@ -327,7 +329,7 @@ class Gurobi(Search): # solver
 class SCIP(Search): # solver
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super.__init__(device, taskname, instance, sequence_name)
+        super().__init__(device, taskname, instance, sequence_name)
         if taskname == "IP": 
             dhp = 1
         elif taskname == "IS":
@@ -343,7 +345,7 @@ class SCIP(Search): # solver
         
         ... # tackle parameters
 
-    def work(self, input: Type[Scores]):
+    def work(self, input: MScores):
 
         self.begin()
         m1 = scp.Model()

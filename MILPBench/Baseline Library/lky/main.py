@@ -21,15 +21,19 @@ parser.add_argument("--predict", required=True, choices=["gcn"], help="predict c
 parser.add_argument("--modify", required=True, choices=["np"], help="modify component")
 parser.add_argument("--search", required=True, choices=["gurobi", "scip"], help="search component")
 
+def get_sequence_name():
+    return 0
+
 if __name__ == "__main__":
     args = parser.parse_args()
-    preprocess_component = Preprocess()
-    graphencode_component = Graphencode(args.graphencode)
-    predict_component = Predict()
-    modify_component = Modify()
-    search_component = Search()
+    sequence_name = get_sequence_name()
+    # preprocess_component = Preprocess(args.device, args.taskname, args.instance_path, sequence_name)
+    # graphencode_component = Graphencode(args.graphencode, device=args.device, taskname=args.taskname, instance=args.instance_path, sequence_name=sequence_name)
+    # predict_component = Predict()
+    # modify_component = Modify()
+    # search_component = Search()
     
-    init2preprocess = Init2Preprocess(args.device, args.taskname, args.instance_input_folder)
-    preprocess2predict = preprocess_component.work(init2preprocess)
+    # init2preprocess = Init2Preprocess(args.device, args.taskname, args.instance_input_folder)
+    # preprocess2predict = preprocess_component.work(init2preprocess)
 #    predict2modify = preprocess2predict.work()
 #    modify2search = 
