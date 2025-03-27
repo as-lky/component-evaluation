@@ -1,0 +1,115 @@
+original problem has 20000 variables (20000 bin, 0 int, 0 impl, 0 cont) and 60000 constraints
+feasible solution found by trivial heuristic after 0.0 seconds, objective value 0.000000e+00
+presolving:
+(round 1, fast)       345 del vars, 585 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 59708 clqs
+(round 2, fast)       803 del vars, 1846 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 58747 clqs
+(round 3, exhaustive) 816 del vars, 1877 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 58724 upgd conss, 0 impls, 58723 clqs
+   (1.0s) probing: 51/19481 (0.3%) - 0 fixings, 0 aggregations, 0 implications, 0 bound changes
+   (1.0s) probing aborted: 50/50 successive totally useless probings
+   (1.0s) symmetry computation started: requiring (bin +, int +, cont +), (fixed: bin -, int -, cont -)
+   (1.0s) no symmetry present (symcode time: 0.00)
+presolving (4 rounds: 4 fast, 2 medium, 2 exhaustive):
+ 819 deleted vars, 1894 deleted constraints, 0 added constraints, 300 tightened bounds, 0 added holes, 0 changed sides, 0 changed coefficients
+ 0 implications, 58706 cliques
+presolved problem has 19481 variables (19481 bin, 0 int, 0 impl, 0 cont) and 58707 constraints
+      1 constraints of type <knapsack>
+  58706 constraints of type <setppc>
+Presolving Time: 1.00
+
+ time | node  | left  |LP iter|LP it/n|mem/heur|mdpt |vars |cons |rows |cuts |sepa|confs|strbr|  dualbound   | primalbound  |  gap   | compl. 
+t 1.0s|     1 |     0 |     0 |     - | trivial|   0 |  19k|  58k|   0 |   0 |  0 |   0 |   0 | 9.871529e+03 | 1.810380e+02 |5352.74%| unknown
+p 3.0s|     1 |     0 |     0 |     - |  clique|   0 |  19k|  58k|  58k|   0 |  0 |   0 |   0 | 9.871529e+03 | 3.715633e+03 | 165.68%| unknown
+ 14.0s|     1 |     0 | 26597 |     - |   242M |   0 |  19k|  58k|  58k|   0 |  0 |   0 |   0 | 5.011079e+03 | 3.715633e+03 |  34.86%| unknown
+ 60.0s|     1 |     0 | 27732 |     - |   262M |   0 |  19k|  58k|  58k|  29 |  1 |   0 |   0 | 5.007988e+03 | 3.715633e+03 |  34.78%| unknown
+  111s|     1 |     0 | 29571 |     - |   270M |   0 |  19k|  58k|  58k|  69 |  2 |   0 |   0 | 5.004653e+03 | 3.715633e+03 |  34.69%| unknown
+  196s|     1 |     0 | 31493 |     - |   309M |   0 |  19k|  58k|  58k| 102 |  3 |   0 |   0 | 5.002159e+03 | 3.715633e+03 |  34.62%| unknown
+original problem has 20000 variables (20000 bin, 0 int, 0 impl, 0 cont) and 60000 constraints
+feasible solution found by trivial heuristic after 0.0 seconds, objective value 0.000000e+00
+presolving:
+(round 1, fast)       345 del vars, 585 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 59708 clqs
+(round 2, fast)       803 del vars, 1846 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 58747 clqs
+(round 3, exhaustive) 816 del vars, 1877 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 58724 upgd conss, 0 impls, 58723 clqs
+   (1.0s) probing: 51/19481 (0.3%) - 0 fixings, 0 aggregations, 0 implications, 0 bound changes
+   (1.0s) probing aborted: 50/50 successive totally useless probings
+   (1.0s) symmetry computation started: requiring (bin +, int +, cont +), (fixed: bin -, int -, cont -)
+   (1.0s) no symmetry present (symcode time: 0.00)
+presolving (4 rounds: 4 fast, 2 medium, 2 exhaustive):
+ 819 deleted vars, 1894 deleted constraints, 0 added constraints, 300 tightened bounds, 0 added holes, 0 changed sides, 0 changed coefficients
+ 0 implications, 58706 cliques
+presolved problem has 19481 variables (19481 bin, 0 int, 0 impl, 0 cont) and 58707 constraints
+      1 constraints of type <knapsack>
+  58706 constraints of type <setppc>
+Presolving Time: 1.00
+
+ time | node  | left  |LP iter|LP it/n|mem/heur|mdpt |vars |cons |rows |cuts |sepa|confs|strbr|  dualbound   | primalbound  |  gap   | compl. 
+t 1.0s|     1 |     0 |     0 |     - | trivial|   0 |  19k|  58k|   0 |   0 |  0 |   0 |   0 | 9.871529e+03 | 1.810380e+02 |5352.74%| unknown
+p 4.0s|     1 |     0 |     0 |     - |  clique|   0 |  19k|  58k|  58k|   0 |  0 |   0 |   0 | 9.871529e+03 | 3.715633e+03 | 165.68%| unknown
+ 10.0s|     1 |     0 | 18691 |     - |   242M |   0 |  19k|  58k|  58k|   0 |  0 |   0 |   0 | 9.871529e+03 | 3.715633e+03 | 165.68%| unknown
+(node 1) LP solver hit time limit in LP 1 -- using pseudo solution instead
+
+SCIP Status        : solving was interrupted [time limit reached]
+Solving Time (sec) : 10.00
+Solving Nodes      : 1
+Primal Bound       : +3.71563279312219e+03 (3 solutions)
+Dual Bound         : +9.87152881615813e+03
+Gap                : 165.68 %
+original problem has 20000 variables (20000 bin, 0 int, 0 impl, 0 cont) and 60000 constraints
+feasible solution found by trivial heuristic after 0.0 seconds, objective value 0.000000e+00
+presolving:
+(round 1, fast)       345 del vars, 585 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 59708 clqs
+(round 2, fast)       803 del vars, 1846 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 58747 clqs
+(round 3, exhaustive) 816 del vars, 1877 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 58724 upgd conss, 0 impls, 58723 clqs
+   (1.0s) probing: 51/19481 (0.3%) - 0 fixings, 0 aggregations, 0 implications, 0 bound changes
+   (1.0s) probing aborted: 50/50 successive totally useless probings
+   (1.0s) symmetry computation started: requiring (bin +, int +, cont +), (fixed: bin -, int -, cont -)
+   (1.0s) no symmetry present (symcode time: 0.00)
+presolving (4 rounds: 4 fast, 2 medium, 2 exhaustive):
+ 819 deleted vars, 1894 deleted constraints, 0 added constraints, 300 tightened bounds, 0 added holes, 0 changed sides, 0 changed coefficients
+ 0 implications, 58706 cliques
+presolved problem has 19481 variables (19481 bin, 0 int, 0 impl, 0 cont) and 58707 constraints
+      1 constraints of type <knapsack>
+  58706 constraints of type <setppc>
+Presolving Time: 1.00
+
+ time | node  | left  |LP iter|LP it/n|mem/heur|mdpt |vars |cons |rows |cuts |sepa|confs|strbr|  dualbound   | primalbound  |  gap   | compl. 
+t 1.0s|     1 |     0 |     0 |     - | trivial|   0 |  19k|  58k|   0 |   0 |  0 |   0 |   0 | 9.871529e+03 | 1.810380e+02 |5352.74%| unknown
+p 3.0s|     1 |     0 |     0 |     - |  clique|   0 |  19k|  58k|  58k|   0 |  0 |   0 |   0 | 9.871529e+03 | 3.715633e+03 | 165.68%| unknown
+ 10.0s|     1 |     0 | 20506 |     - |   242M |   0 |  19k|  58k|  58k|   0 |  0 |   0 |   0 | 9.871529e+03 | 3.715633e+03 | 165.68%| unknown
+(node 1) LP solver hit time limit in LP 1 -- using pseudo solution instead
+
+SCIP Status        : solving was interrupted [time limit reached]
+Solving Time (sec) : 10.00
+Solving Nodes      : 1
+Primal Bound       : +3.71563279312219e+03 (3 solutions)
+Dual Bound         : +9.87152881615813e+03
+Gap                : 165.68 %
+original problem has 20000 variables (20000 bin, 0 int, 0 impl, 0 cont) and 60000 constraints
+feasible solution found by trivial heuristic after 1.0 seconds, objective value 0.000000e+00
+presolving:
+(round 1, fast)       345 del vars, 585 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 59708 clqs
+(round 2, fast)       803 del vars, 1846 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 58747 clqs
+(round 3, exhaustive) 816 del vars, 1877 del conss, 0 add conss, 300 chg bounds, 0 chg sides, 0 chg coeffs, 58724 upgd conss, 0 impls, 58723 clqs
+   (1.0s) probing: 51/19481 (0.3%) - 0 fixings, 0 aggregations, 0 implications, 0 bound changes
+   (1.0s) probing aborted: 50/50 successive totally useless probings
+   (1.0s) symmetry computation started: requiring (bin +, int +, cont +), (fixed: bin -, int -, cont -)
+   (1.0s) no symmetry present (symcode time: 0.00)
+presolving (4 rounds: 4 fast, 2 medium, 2 exhaustive):
+ 819 deleted vars, 1894 deleted constraints, 0 added constraints, 300 tightened bounds, 0 added holes, 0 changed sides, 0 changed coefficients
+ 0 implications, 58706 cliques
+presolved problem has 19481 variables (19481 bin, 0 int, 0 impl, 0 cont) and 58707 constraints
+      1 constraints of type <knapsack>
+  58706 constraints of type <setppc>
+Presolving Time: 0.00
+
+ time | node  | left  |LP iter|LP it/n|mem/heur|mdpt |vars |cons |rows |cuts |sepa|confs|strbr|  dualbound   | primalbound  |  gap   | compl. 
+t 1.0s|     1 |     0 |     0 |     - | trivial|   0 |  19k|  58k|   0 |   0 |  0 |   0 |   0 | 9.871529e+03 | 1.810380e+02 |5352.74%| unknown
+p 4.0s|     1 |     0 |     0 |     - |  clique|   0 |  19k|  58k|  58k|   0 |  0 |   0 |   0 | 9.871529e+03 | 3.715633e+03 | 165.68%| unknown
+ 10.0s|     1 |     0 | 19483 |     - |   242M |   0 |  19k|  58k|  58k|   0 |  0 |   0 |   0 | 9.871529e+03 | 3.715633e+03 | 165.68%| unknown
+(node 1) LP solver hit time limit in LP 1 -- using pseudo solution instead
+
+SCIP Status        : solving was interrupted [time limit reached]
+Solving Time (sec) : 10.00
+Solving Nodes      : 1
+Primal Bound       : +3.71563279312219e+03 (3 solutions)
+Dual Bound         : +9.87152881615813e+03
+Gap                : 165.68 %

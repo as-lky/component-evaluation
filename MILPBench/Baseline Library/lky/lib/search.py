@@ -5,14 +5,14 @@ import time
 import random
 import gurobipy as gp
 
-from help.LIH.help import greedy_one as greedy_one_LIH, split_problem as split_problem_LIH
-from help.MIH.help import greedy_one as greedy_one_MIH, split_problem as split_problem_MIH
-from help.NALNS.help import greedy_one as greedy_one_NALNS, split_problem as split_problem_NALNS
-from help.LNS.help import split_problem as split_problem_LNS
+from .help.LIH.help import greedy_one as greedy_one_LIH, split_problem as split_problem_LIH
+from .help.MIH.help import greedy_one as greedy_one_MIH, split_problem as split_problem_MIH
+from .help.NALNS.help import greedy_one as greedy_one_NALNS, split_problem as split_problem_NALNS
+from .help.LNS.help import split_problem as split_problem_LNS
+from .mod import Component, Modify2Search, Cansol, MScores
 
 from pyscipopt import SCIP_PARAMSETTING
 from typing import Self, Type, cast
-from mod import Component, Modify2Search, Cansol, MScores
 from gurobipy import GRB
 
 
@@ -35,13 +35,14 @@ class Search(Component):
 
         return super().__new__( cast(type[Self], cls) )
         
-    def __init__(self, device, taskname, instance, sequence_name):
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(device, taskname, instance, sequence_name)
-        
+
+    def work(self, input: Modify2Search):...
         
 class LIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super().__init__(device, taskname, instance, sequence_name)
+        super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 3600)
         ... # tackle parameters
 
@@ -88,7 +89,7 @@ class LIH(Search):
  
 class MIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super().__init__(device, taskname, instance, sequence_name)
+        super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 3600)
         ... # tackle parameters
 
@@ -135,7 +136,7 @@ class MIH(Search):
         
 class LNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super().__init__(device, taskname, instance, sequence_name)
+        super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 3600)
         self.block = kwargs.get("block", 4)
         self.max_turn_ratio = kwargs.get("max_turn_ratio", 0.01)
@@ -266,7 +267,7 @@ class LNS(Search):
 
 class NALNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super().__init__(device, taskname, instance, sequence_name)
+        super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 3600)
         
         ... # tackle parameters
@@ -320,7 +321,7 @@ class NALNS(Search):
 class Gurobi(Search): # solver
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super().__init__(device, taskname, instance, sequence_name)
+        super().__init__(component, device, taskname, instance, sequence_name)
         ... # tackle parameters
 
     def work(self, input: Type[Modify2Search]):
@@ -329,7 +330,7 @@ class Gurobi(Search): # solver
 class SCIP(Search): # solver
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super().__init__(device, taskname, instance, sequence_name)
+        super().__init__(component, device, taskname, instance, sequence_name)
         if taskname == "IP": 
             dhp = 1
         elif taskname == "IS":
@@ -342,6 +343,7 @@ class SCIP(Search): # solver
             dhp = 0 # default hyperparameter
                 
         self.delta = kwargs.get('delta', dhp)
+        self.time_limit = kwargs.get('time_limit', 10)
         
         ... # tackle parameters
 
@@ -349,7 +351,7 @@ class SCIP(Search): # solver
 
         self.begin()
         m1 = scp.Model()
-        m1.setParam('limits/time', 1000)
+        m1.setParam('limits/time', self.time_limit)
         #m1.hideOutput(True)
         m1.setParam('randomization/randomseedshift', 0)
         m1.setParam('randomization/lpseed', 0)
@@ -379,3 +381,5 @@ class SCIP(Search): # solver
         m1.addCons(scp.quicksum(ap for ap in alphas) <= self.delta, 'sum_alpha')
         m1.optimize()
         self.end() # TODO: add return
+        
+        return m1.getGap()

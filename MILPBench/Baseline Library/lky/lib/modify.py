@@ -1,6 +1,6 @@
 import torch
 from typing import Type, cast, Self
-from mod import Component, Predict2Modify, Modify2Search, MScores
+from .mod import Component, Predict2Modify, Modify2Search, MScores
         
 
 class Modify(Component):
@@ -12,14 +12,14 @@ class Modify(Component):
         return super().__new__( cast(type[Self], cls) )
         
         
-    def __init__(self, device, taskname, instance, sequence_name):
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(device, taskname, instance, sequence_name)
             
     def work(self, input: Predict2Modify) -> Modify2Search:...
         
 class Np(Modify): # build a new problem based on the prediction
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super().__init__(device, taskname, instance, sequence_name)
+        super().__init__(component, device, taskname, instance, sequence_name)
         
         if taskname == "IP": 
             dhp = (400, 5)

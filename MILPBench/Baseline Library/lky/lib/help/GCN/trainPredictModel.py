@@ -15,25 +15,16 @@ torch.backends.cudnn.benchmark = True
 
 parser = argparse.ArgumentParser(description="receive train instruction from predict component")
 parser.add_argument("--device", required=True, choices=["cpu", "cuda"], help="cpu or cuda")
-parser.add_argument("--taskname", required=True, choices=["IP, IS, WA, CA"], help="taskname")
-parser.add_argument("--dataset_path", required=True, help="the task instance input path")
-parser.add_argument("--train_instances_folder", help="the train instances input folder")
+parser.add_argument("--taskname", choices=["IP", "IS", "WA", "CA"], help="the task name")
+parser.add_argument("--train_data_dir", help="the train instances input folder")
+parser.add_argument("--log_dir", help="the train log directory")
+parser.add_argument("--model_save_dir", help="the model output directory")
+args = parser.parse_args()
 
-TaskName="easy_setcover"
-
-#set folder
-train_task=f'{TaskName}_train'
-if not os.path.isdir(f'./train_logs'):
-    os.mkdir(f'./train_logs')
-if not os.path.isdir(f'./train_logs/{train_task}'):
-    os.mkdir(f'./train_logs/{train_task}')
-if not os.path.isdir(f'./pretrain'):
-    os.mkdir(f'./pretrain')
-if not os.path.isdir(f'./pretrain/{train_task}'):
-    os.mkdir(f'./pretrain/{train_task}')
-model_save_path = f'./pretrain/{train_task}/'
-log_save_path = f"train_logs/{train_task}/"
-log_file = open(f'{log_save_path}{train_task}_train.log', 'wb')
+model_save_path = args.model_save_dir
+log_save_path = args.log_dir
+log_file = open(f'{log_save_path}/GCNtrain.log', 'wb')
+#TaskName = args.taskname
 
 #set params
 LEARNING_RATE = 0.001

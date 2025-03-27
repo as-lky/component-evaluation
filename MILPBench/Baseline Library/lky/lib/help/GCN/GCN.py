@@ -444,16 +444,19 @@ class GraphDataset_position(torch_geometric.data.Dataset):
 
         return graph
 
-def postion_get(variable_features):
+def postion_get(variable_features, DEVICE):
     lens = variable_features.shape[0]
-    feature_widh = 12  # max length 4095
+#    feature_widh = 12  # max length 4095
+    feature_widh = 13  # 12 RE? # TODO: check
+     
     position = torch.arange(0, lens, 1)
 
     position_feature = torch.zeros(lens, feature_widh)
     for i in range(len(position_feature)):
         binary = str(bin(position[i]).replace('0b', ''))
-
         for j in range(len(binary)):
+            if j >= feature_widh:
+                break
             position_feature[i][j] = int(binary[-(j + 1)])
 
     variable_features = torch.FloatTensor(variable_features.cpu())

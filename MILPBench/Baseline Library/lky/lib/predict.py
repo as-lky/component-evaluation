@@ -1,7 +1,8 @@
 import torch
 import os
+import re
 from typing import Type, cast, Self
-from mod import Component, Graphencode2Predict, Predict2Modify, PScores
+from .mod import Component, Graphencode2Predict, Predict2Modify, PScores
 
 class Predict(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -11,7 +12,7 @@ class Predict(Component):
             raise ValueError("Predict component type is not defined")
         return super().__new__( cast(type[Self], cls) )
 
-    def __init__(self, device, taskname, instance, sequence_name):
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(device, taskname, instance, sequence_name)
 
 
@@ -20,7 +21,9 @@ class Predict(Component):
 class GCN(Predict):
         
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
-        super().__init__(device, taskname, instance, sequence_name)
+        super().__init__(component, device, taskname, instance, sequence_name)
+        if "train_data_dir" in kwargs:
+            self.train_data_dir = kwargs["train_data_dir"]
         ... # tackle parameters 
  
     def work(self, input: Graphencode2Predict) -> PScores:    
@@ -29,21 +32,31 @@ class GCN(Predict):
         # first check the model, if there is not then train using train instances
         if self.taskname == "IP":
             #Add position embedding for IP model, due to the strong symmetry
-            from help.GCN import GNNPolicy_position as GNNPolicy
+            from .help.GCN.GCN import GNNPolicy_position as GNNPolicy
         else:
-            from help.GCN import GNNPolicy
+            from .help.GCN.GCN import GNNPolicy
         
         DEVICE = self.device     
         
-        pathstr = ""
-        if os.path.exists(f'./Model/{self.taskname}/GCN_predict.pth'): # TODO : add parameter for model name
-            pathstr = f'./Model/{self.taskname}/GCN_predict.pth'
+        instance_name = os.path.basename(self.instance)
+        instance_name = re.match(r"(.*)_[0-9]+", instance_name)
+        if instance_name == None:
+            raise ValueError("instance name error!")
         else :
-            ...
-            # LP instance dir TRAIN train dir
-            # train! TODO
+            instance_name = instance_name.group(1)
+            
+        pathstr = ""
+        # 模型训练不需要以sequence_name做路径 因为其与其他部分无关 只保留instance_name可以确保可复用性
+        if os.path.exists(f'./Model/{self.taskname}/{instance_name}/GCN_predict.pth'): # TODO : add parameter for model name
+            pathstr = f'./Model/{self.taskname}/{instance_name}/GCN_predict.pth'
+        else :
+            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/'):
+                os.mkdir(f'./logs/{self.taskname}/{instance_name}/')
+            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/train/'): # TODO : add parameter for model name
+                os.mkdir(f'./logs/{self.taskname}/{instance_name}/train/')
+            
         policy = GNNPolicy().to(DEVICE)
-        state = torch.load(pathstr, map_location=torch.device('cuda:0')) # why cuda?
+        state = torch.load(pathstr, map_location=torch.device(DEVICE)) # TODO: check why cuda?
         policy.load_state_dict(state)
         
         BD = policy(

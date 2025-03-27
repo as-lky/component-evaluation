@@ -3,8 +3,9 @@ import copy
 import time
 import gurobipy as gp
 import numpy as np
-from gurobipy import GRB, read, Model
 import pandas as pd
+
+from gurobipy import GRB, read, Model
 
 def initial_solution(n, m, k, site, value, constraint, constraint_type, lower_bound, upper_bound, value_type):
     model = Model("Gurobi")
