@@ -1,3 +1,4 @@
+from getpass import GetPassWarning
 import os
 import copy
 import time
@@ -167,9 +168,9 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                 else:
                     new_sol[i] = (int)(x[site_to_new[i]].X)
             
-        return new_sol, model.ObjVal, 1
+        return new_sol, model.ObjVal, 1, model.MIPGap
     except:
-        return -1, -1, -1
+        return -1, -1, -1, -1
 
 def eval(n, coefficient, new_sol):
     ans = 0
@@ -213,7 +214,7 @@ def greedy_one(now_instance_data, time_limit):
     LP_sol = initial_LP_solution(n, m, k, site, value, constraint, constraint_type, coefficient, set_time * 0.3, obj_type, lower_bound, upper_bound, value_type)
     
     turn_limit = 100
-    
+    GAP = 0
     now_sol = initial_sol
     while(time.time() - begin_time <= set_time):
         #print("before", parts, time.time() - begin_time)
@@ -228,10 +229,11 @@ def greedy_one(now_instance_data, time_limit):
         color = np.zeros(n)
         for i in range(int(n * choose)):
             color[indices[i]] = 1
-        new_sol, now_val, now_flag = Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, min(set_time - (time.time() - begin_time), turn_limit), obj_type, lower_bound, upper_bound, value_type, now_sol, color)
+        new_sol, now_val, now_flag, now_gap = Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, min(set_time - (time.time() - begin_time), turn_limit), obj_type, lower_bound, upper_bound, value_type, now_sol, color)
         if(now_flag == -1):
             continue
         
+        GAP = now_gap
         #Maximize
         if(obj_type == -1):
             if(now_val > best_val):
@@ -244,7 +246,7 @@ def greedy_one(now_instance_data, time_limit):
 
         turn_ans.append(best_val) 
         turn_time.append(time.time() - begin_time)
-    return(turn_ans, turn_time)
+    return(turn_ans, turn_time, GAP)
 
 def split_problem(lp_file):
     """

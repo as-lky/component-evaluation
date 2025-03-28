@@ -43,13 +43,18 @@ class Search(Component):
 class LIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 3600)
+        self.time_limit = kwargs.get("time_limit", 10)
         ... # tackle parameters
 
     def work(self, input: Cansol):
         self.begin()
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_LIH(self.instance)
-        new_sol = input.cansol
+        new_sol = []
+        
+        tmp = gp.read(self.instance)
+        for var in tmp.getVars():
+            new_sol.append(input.cansol[var.VarName])
+            
         time_limit = self.time_limit
         new_site = []
         new_value = []
@@ -83,18 +88,25 @@ class LIH(Search):
 
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
         
-        now_sol, now_time = greedy_one_LIH(now_instance, time_limit)
+        now_sol, now_time, now_gap = greedy_one_LIH(now_instance, time_limit)
         self.end()
-        return now_sol, now_time # TODO: modify return
+        return now_gap # TODO: modify return
  
 class MIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 3600)
+        self.time_limit = kwargs.get("time_limit", 10)
         ... # tackle parameters
 
     def work(self, input: Cansol):
         self.begin()
+        
+        ns_ = []
+        
+        tmp = gp.read(self.instance)
+        for var in tmp.getVars():
+            ns_.append(input.cansol[var.VarName])
+        
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_MIH(self.instance)
         time_limit = self.time_limit
         new_site = []
@@ -125,19 +137,19 @@ class MIH(Search):
                 new_value_type[i] = 1
             else:
                 new_value_type[i] = 2
-            new_new_sol[i] = input.cansol[i]
+            new_new_sol[i] = ns_[i]
 
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
-        now_sol, now_time = greedy_one_MIH(now_instance, time_limit)
+        now_sol, now_time, now_gap = greedy_one_MIH(now_instance, time_limit)
         # print(now_sol)
         # print(now_time)
         self.end()
-        return now_sol, now_time # TODO: modify return
+        return now_gap, now_sol # TODO: modify return
         
 class LNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 3600)
+        self.time_limit = kwargs.get("time_limit", 10)
         self.block = kwargs.get("block", 4)
         self.max_turn_ratio = kwargs.get("max_turn_ratio", 0.01)
         
@@ -154,11 +166,18 @@ class LNS(Search):
         #Set KK as the initial number of blocks, and PP as the selected number of blocks to optimize after dividing the constraints into KK blocks
         KK = self.block
         
-        ans, ansx = input.objval, input.cansol
+        ns_ = []
+        
+        tmp = gp.read(self.instance)
+        for var in tmp.getVars():
+            ns_.append(input.cansol[var.VarName])
+        
+        ans, ansx = input.objval, ns_
         # Here the ans is the objective value, ansx is the sol of index(like ans in LIH MIH)
         print(f"Initial objective: {ans}")
                 
         begin_time = time.time()
+        GAP = input.gap  # TODO : check LNS gap
         while(time.time() - begin_time <= time_limit):
             print("KK = ", KK)
             #Randomly divide the decision variables into KK blocks
@@ -241,11 +260,13 @@ class LNS(Search):
                     #Update the current best solution and best ans
                     if(obj_type == 'maximize'):
                         if(temp > ans):
+                            GAP = model.MIPGap
                             for i in range(vertex_color_num):
                                 ansx[color_to_site[i]] = bestX[i]
                             ans = temp
                     else:
                         if(temp < ans):
+                            GAP = model.MIPGap
                             for i in range(vertex_color_num):
                                 ansx[color_to_site[i]] = bestX[i]
                             ans = temp
@@ -263,12 +284,12 @@ class LNS(Search):
             new_ansx[num_to_value[i]] = ansx[i]
 
         self.end()
-        return ans, time.time() - begin_time # TODO: modify return
+        return GAP, ans # TODO: modify return
 
 class NALNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 3600)
+        self.time_limit = kwargs.get("time_limit", 10)
         
         ... # tackle parameters
 
@@ -276,7 +297,13 @@ class NALNS(Search):
         
         self.begin()
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_NALNS(self.instance)
-        new_sol = input.cansol
+
+        new_sol = []
+        tmp = gp.read(self.instance)
+        for var in tmp.getVars():
+            new_sol.append(input.cansol[var.VarName])
+        
+        
         time_limit = self.time_limit
 
         new_site = []
@@ -310,12 +337,12 @@ class NALNS(Search):
             new_new_sol[i] = new_sol[i]
 
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
-        now_sol, now_time = greedy_one_NALNS(now_instance, time_limit)
+        now_sol, now_time, now_gap = greedy_one_NALNS(now_instance, time_limit)
         # print(now_sol)
         # print(now_time)
         self.end()
         
-        return now_sol, now_time # TODO: modify return
+        return now_gap, now_sol # TODO: modify return
          
 
 class Gurobi(Search): # solver
@@ -330,15 +357,14 @@ class Gurobi(Search): # solver
         
         model = gp.read(self.instance)
         model.setParam('TimeLimit', self.time_limit)
-        id = 0
+
         for var in model.getVars():
-            var.Start = input.cansol[id]
-            id += 1
+            var.Start = input.cansol[var.VarName]
         model.optimize()
     
         self.end()
         
-        return model.getGap()
+        return model.MIPGap, model.ObjVal
         
         
 class SCIP(Search): # solver
@@ -361,8 +387,33 @@ class SCIP(Search): # solver
         
         ... # tackle parameters
 
-    def work(self, input: MScores):
+    def work_for_Cansol(self, input: Cansol):
+        self.begin()
 
+        model = scp.Model()
+        model.setParam('limits/time', self.time_limit)
+        #m1.hideOutput(True)
+        model.setParam('randomization/randomseedshift', 0)
+        model.setParam('randomization/lpseed', 0)
+        model.setParam('randomization/permutationseed', 0)
+        model.setHeuristics(SCIP_PARAMSETTING.AGGRESSIVE)#MIP focus
+        model.readProblem(self.instance)
+        
+        new_sol = model.createSol()
+        for var in model.getVars():
+            model.setSolVal(new_sol, var, input.cansol[var.name])
+        model.addSol(new_sol)
+        model.optimize()
+        
+        self.end()
+
+        return model.getGap(), model.getObjVal()
+    
+    def work(self, input: MScores | Cansol):
+
+        if type(input) == Cansol:
+            return self.work_for_Cansol(input)
+        
         self.begin()
         m1 = scp.Model()
         m1.setParam('limits/time', self.time_limit)
@@ -396,4 +447,4 @@ class SCIP(Search): # solver
         m1.optimize()
         self.end() # TODO: add return
         
-        return m1.getGap()
+        return m1.getGap(), m1.getObjVal()

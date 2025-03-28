@@ -46,9 +46,10 @@ class Modify2Search(LayerConvey):
         
 
 class Cansol(Modify2Search):
-    def __init__(self, objval, cansol): # a sol which can be used
+    def __init__(self, objval, cansol, gap): # a sol which can be used
         self.objval = objval
         self.cansol = cansol
+        self.gap = gap
         
         
 class PScores(Predict2Modify):

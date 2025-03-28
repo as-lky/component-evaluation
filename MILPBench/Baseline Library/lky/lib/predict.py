@@ -2,6 +2,8 @@ import torch
 import os
 import re
 import gurobipy as gp
+import pyscipopt
+#import cplex
 from typing import Type, cast, Self
 from .mod import Component, Graphencode2Predict, Predict2Modify, PScores, Cansol
 
@@ -11,8 +13,13 @@ class Predict(Component):
             cls = GCN
         elif component == "gurobi":
             cls = Gurobi 
-        else :
+        elif component == "scip":
+            cls = SCIP
+        elif component == "cplex":
+            cls = CPLEX
+        else:
             raise ValueError("Predict component type is not defined")
+        
         return super().__new__( cast(type[Self], cls) )
 
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -31,17 +38,63 @@ class Gurobi(Predict):
         
         self.begin()
         
-        cansol = []
+        cansol = {}
         
         model = gp.read(self.instance)
         model.setParam('TimeLimit', self.time_limit)
         model.optimize()
         for var in model.getVars():
-            cansol.append(var.X)
+            cansol[var.VarName] = var.X
         
         self.end()
-        return Cansol(model.ObjVal, cansol)
+        return Cansol(model.ObjVal, cansol, model.MIPGap)
     
+class SCIP(Predict):
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
+        super().__init__(component, device, taskname, instance, sequence_name)
+        self.time_limit = kwargs.get("time_limit", 10)
+        ... # tackle parameters
+    
+    def work(self, input: Graphencode2Predict) -> Cansol:    
+        
+        self.begin()
+    
+        solver = pyscipopt.Model()
+        solver.readProblem(self.instance)
+        solver.setRealParam('limits/time', self.time_limit)
+        solver.optimize()
+    
+        cansol = {}
+        
+        for var in solver.getVars():
+            cansol[var.name] = solver.getVal(var)
+
+        self.end()
+        return Cansol(solver.getObjVal(), cansol, solver.getGap())
+    
+class CPLEX(Predict):
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
+        super().__init__(component, device, taskname, instance, sequence_name)
+        self.time_limit = kwargs.get("time_limit", 10)
+        ... # tackle parameters
+    
+    def work(self, input: Graphencode2Predict) -> Cansol:    
+        
+        self.begin()
+        
+        cansol = {}
+        
+        model = cplex.Cplex()
+        model.read(self.instance)
+        model.parameters.timelimit.set(self.time_limit)
+        model.solve()
+        
+        for var_name, var_value in zip(model.variables.get_names(), model.solution.get_values()):
+            cansol[var_name] = var_value
+
+        self.end()
+        return Cansol(model.solution.get_objective_value(), cansol, model.solution.MIP.get_mip_relative_gap())
+
 
 class GCN(Predict):
         
