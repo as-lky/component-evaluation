@@ -1,4 +1,5 @@
 import torch
+import os
 import argparse
 import time
 from lib.mod import Init2Preprocess
@@ -15,12 +16,12 @@ parser.add_argument("--instance_path", required=True, help="the task instance in
 parser.add_argument("--train_instances_folder", help="the train instances input folder")
 
 # log?
-parser.add_argument("--graphencode", required=True, choices=["bi", "tri"], help="graph encode component")
-parser.add_argument("--predict", required=True, choices=["gcn"], help="predict component")
+parser.add_argument("--graphencode", required=True, choices=["bi", "tri", "default"], help="graph encode component")
+parser.add_argument("--predict", required=True, choices=["gcn", "gurobi"], help="predict component")
 # search for model firstly
 
-parser.add_argument("--modify", required=True, choices=["np"], help="modify component")
-parser.add_argument("--search", required=True, choices=["gurobi", "scip"], help="search component")
+parser.add_argument("--modify", required=True, choices=["np", "default"], help="modify component")
+parser.add_argument("--search", required=True, choices=["gurobi", "scip", "LIH", "MIH", "LNS", "NALNS"], help="search component")
 
 def get_sequence_name():
     return "test"
@@ -30,6 +31,7 @@ if __name__ == "__main__":
     start_time = time.time()
     args = parser.parse_args()
     sequence_name = get_sequence_name()
+    instance_name = os.path.basename(args.instance_path)
     preprocess_component = Preprocess(args.device, args.taskname, args.instance_path, sequence_name)
     graphencode_component = Graphencode(args.graphencode, args.device, args.taskname, args.instance_path, sequence_name)
     predict_component = Predict(args.predict, args.device, args.taskname, args.instance_path, sequence_name)

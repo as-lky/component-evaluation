@@ -1,13 +1,15 @@
 import torch
 from typing import Type, cast, Self
-from .mod import Component, Predict2Modify, Modify2Search, MScores
+from .mod import Component, Predict2Modify, Modify2Search, MScores, PScores, Cansol
         
 
 class Modify(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
         if component == "np":
             cls = Np
-        else :
+        elif component == "default":
+            cls = Default
+        else:
             raise ValueError("Modify component type is not defined")
         return super().__new__( cast(type[Self], cls) )
         
@@ -36,7 +38,7 @@ class Np(Modify): # build a new problem based on the prediction
         self.k1 = kwargs.get("k1", dhp[1])
         # tackle parameters    
 
-    def work(self, input: Predict2Modify) -> Modify2Search:
+    def work(self, input: PScores) -> MScores:
         self.begin()
         b_vars = input.b_vars
         scores = input.scores
@@ -67,4 +69,14 @@ class Np(Modify): # build a new problem based on the prediction
                 count0 += 1
         self.end()
         return MScores(scores)
+        
+class Default(Modify): # build a new problem based on the prediction
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
+        super().__init__(component, device, taskname, instance, sequence_name)
+        # tackle parameters    
+
+    def work(self, input: Cansol) -> Cansol:
+        self.begin()
+        self.end()
+        return input
         

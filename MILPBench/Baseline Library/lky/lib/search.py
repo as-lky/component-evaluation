@@ -322,10 +322,24 @@ class Gurobi(Search): # solver
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
+        self.time_limit = kwargs.get('time_limit', 10)
         ... # tackle parameters
 
-    def work(self, input: Type[Modify2Search]):
-        ...
+    def work(self, input: Cansol):
+        self.begin()
+        
+        model = gp.read(self.instance)
+        model.setParam('TimeLimit', self.time_limit)
+        id = 0
+        for var in model.getVars():
+            var.Start = input.cansol[id]
+            id += 1
+        model.optimize()
+    
+        self.end()
+        
+        return model.getGap()
+        
         
 class SCIP(Search): # solver
     
