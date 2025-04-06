@@ -41,7 +41,6 @@ if __name__ == "__main__":
     modify_component = Modify(args.modify, args.device, args.taskname, args.instance_path, sequence_name)
     search_component = Search(args.search, args.device, args.taskname, args.instance_path, sequence_name, time_limit=args.search_time_limit)
     
-    
     preprocess_component.work()
     now = graphencode_component.work()
     now = predict_component.work(now)
@@ -53,7 +52,7 @@ if __name__ == "__main__":
     print(now[1])
     end_time = time.time()
     
-    des = f'./logs/{args.taskname}/{sequence_name}/work/result.txt'
+    des = f'./logs/work/{args.taskname}/{str(sequence_name)}/result.txt'
     with open(des, 'w') as f:
         f.write(f"{gap * 100:0.4f} {end_time - start_time:0.4f}")
     print("the result has been saved!")

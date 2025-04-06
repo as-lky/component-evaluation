@@ -33,13 +33,13 @@ BATCH_SIZE = 4
 NUM_WORKERS = 0
 WEIGHT_NORM = 100
 
-DEVICE = torch.device("cuda:1")
-DEVICE = torch.device("cpu")
-
+if args.device == "cpu":
+    DEVICE = torch.device("cpu")
+else :
+    DEVICE = torch.device("cuda:1")
+    
 DIR_BG = args.train_data_dir + 'LP'
 DIR_SOL = args.train_data_dir + 'Pickle'
-print(DIR_BG)
-
 
 sample_names = os.listdir(DIR_BG)
 sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names]

@@ -44,28 +44,20 @@ class Predict2Modify(LayerConvey):
 class Modify2Search(LayerConvey):
     ... # nothing to do
         
-
-class Cansol(Modify2Search):
+class Cantsol(Predict2Modify):
+    def __init__(self, scores): # a sol which can't be used
+        self.scores = scores
+        
+class Cansol2M(Predict2Modify):
     def __init__(self, objval, cansol, gap): # a sol which can be used
         self.objval = objval
         self.cansol = cansol
         self.gap = gap
-        
-        
-class PScores(Predict2Modify):
-    def __init__(self, b_vars, scores): # predicted scores
-        self.b_vars = b_vars
-        self.scores = scores
-        
-class MScores(Modify2Search):
-    def __init__(self, scores): # predicted scores
-        self.scores = scores
-        
-        
 
-class Scores(Predict2Modify):
-    def __init__(self, b_vars, scores): # predicted scores
-        self.b_vars = b_vars
-        self.scores = scores
-        
+
+class Cansol2S(Modify2Search):
+    def __init__(self, objval, cansol, gap): # a sol which can be used
+        self.objval = objval
+        self.cansol = cansol
+        self.gap = gap
 

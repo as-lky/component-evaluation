@@ -9,7 +9,7 @@ from .help.LIH.help import greedy_one as greedy_one_LIH, split_problem as split_
 from .help.MIH.help import greedy_one as greedy_one_MIH, split_problem as split_problem_MIH
 from .help.NALNS.help import greedy_one as greedy_one_NALNS, split_problem as split_problem_NALNS
 from .help.LNS.help import split_problem as split_problem_LNS
-from .mod import Component, Modify2Search, Cansol, MScores
+from .mod import Component, Modify2Search, Cansol2S
 
 from pyscipopt import SCIP_PARAMSETTING
 from typing import Self, Type, cast
@@ -43,10 +43,10 @@ class Search(Component):
 class LIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 10)
+        self.time_limit = kwargs.get("time_limit") or 10
         ... # tackle parameters
 
-    def work(self, input: Cansol):
+    def work(self, input: Cansol2S):
         self.begin()
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_LIH(self.instance)
         new_sol = []
@@ -95,10 +95,10 @@ class LIH(Search):
 class MIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 10)
+        self.time_limit = kwargs.get("time_limit") or 10
         ... # tackle parameters
 
-    def work(self, input: Cansol):
+    def work(self, input: Cansol2S):
         self.begin()
         
         ns_ = []
@@ -149,13 +149,13 @@ class MIH(Search):
 class LNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 10)
-        self.block = kwargs.get("block", 4)
-        self.max_turn_ratio = kwargs.get("max_turn_ratio", 0.01)
+        self.time_limit = kwargs.get("time_limit") or 10
+        self.block = kwargs.get("block") or 4
+        self.max_turn_ratio = kwargs.get("max_turn_ratio") or 0.01
         
         ... # tackle parameters
 
-    def work(self, input: Cansol):
+    def work(self, input: Cansol2S):
         self.begin()
         
         time_limit = self.time_limit
@@ -289,11 +289,11 @@ class LNS(Search):
 class NALNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 10)
+        self.time_limit = kwargs.get("time_limit") or 10
         
         ... # tackle parameters
 
-    def work(self, input: Cansol):
+    def work(self, input: Cansol2S):
         
         self.begin()
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_NALNS(self.instance)
@@ -349,10 +349,10 @@ class Gurobi(Search): # solver
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get('time_limit', 10)
+        self.time_limit = kwargs.get('time_limit') or 10
         ... # tackle parameters
 
-    def work(self, input: Cansol):
+    def work(self, input: Cansol2S):
         self.begin()
         
         model = gp.read(self.instance)
@@ -382,12 +382,12 @@ class SCIP(Search): # solver
         else :
             dhp = 0 # default hyperparameter
                 
-        self.delta = kwargs.get('delta', dhp)
-        self.time_limit = kwargs.get('time_limit', 10)
+        self.delta = kwargs.get('delta') or dhp
+        self.time_limit = kwargs.get('time_limit') or 10
         
         ... # tackle parameters
 
-    def work_for_Cansol(self, input: Cansol):
+    def work(self, input: Cansol2S):
         self.begin()
 
         model = scp.Model()
@@ -408,43 +408,3 @@ class SCIP(Search): # solver
         self.end()
 
         return model.getGap(), model.getObjVal()
-    
-    def work(self, input: MScores | Cansol):
-
-        if type(input) == Cansol:
-            return self.work_for_Cansol(input)
-        
-        self.begin()
-        m1 = scp.Model()
-        m1.setParam('limits/time', self.time_limit)
-        #m1.hideOutput(True)
-        m1.setParam('randomization/randomseedshift', 0)
-        m1.setParam('randomization/lpseed', 0)
-        m1.setParam('randomization/permutationseed', 0)
-        m1.setHeuristics(SCIP_PARAMSETTING.AGGRESSIVE)#MIP focus
-
-        instance_name = os.path.basename(self.instance)
-        log_path = f'./logs/{self.taskname}/{self.sequence_name}/work/{instance_name}.log'
-        m1.setLogfile(log_path)
-        m1.readProblem(self.instance)
-
-        #trust region method implemented by adding constraints
-        m1_vars = m1.getVars()
-        var_map1 = {}
-        for v in m1_vars:  # get a dict (variable map), varname:var clasee
-            var_map1[v.name] = v
-        alphas = []
-        for i in range(len(input.scores)):
-            tar_var = var_map1[input.scores[i][1]]  # target variable <-- variable map
-            x_star = input.scores[i][3]  # 1,0,-1, decide whether to fix
-            if x_star < 0: # -1 no need to fix
-                continue
-            tmp_var = m1.addVar(f'alp_{tar_var}_{i}', 'C')
-            alphas.append(tmp_var)
-            m1.addCons(tmp_var >= tar_var - x_star, f'alpha_up_{i}')
-            m1.addCons(tmp_var >= x_star - tar_var, f'alpha_down_{i}')
-        m1.addCons(scp.quicksum(ap for ap in alphas) <= self.delta, 'sum_alpha')
-        m1.optimize()
-        self.end() # TODO: add return
-        
-        return m1.getGap(), m1.getObjVal()

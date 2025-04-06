@@ -6,7 +6,7 @@ import pyscipopt
 import subprocess
 #import cplex
 from typing import Type, cast, Self
-from .mod import Component, Graphencode2Predict, Predict2Modify, PScores, Cansol
+from .mod import Component, Graphencode2Predict, Predict2Modify, Cantsol, Cansol2M
 
 class Predict(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -35,7 +35,7 @@ class Gurobi(Predict):
         self.time_limit = kwargs.get("time_limit", 10)
         ... # tackle parameters
     
-    def work(self, input: Graphencode2Predict) -> Cansol:    
+    def work(self, input: Graphencode2Predict) -> Cansol2M:    
         
         self.begin()
         
@@ -48,7 +48,7 @@ class Gurobi(Predict):
             cansol[var.VarName] = var.X
         
         self.end()
-        return Cansol(model.ObjVal, cansol, model.MIPGap)
+        return Cansol2M(model.ObjVal, cansol, model.MIPGap)
     
 class SCIP(Predict):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -56,7 +56,7 @@ class SCIP(Predict):
         self.time_limit = kwargs.get("time_limit", 10)
         ... # tackle parameters
     
-    def work(self, input: Graphencode2Predict) -> Cansol:    
+    def work(self, input: Graphencode2Predict) -> Cansol2M:    
         
         self.begin()
     
@@ -71,7 +71,7 @@ class SCIP(Predict):
             cansol[var.name] = solver.getVal(var)
 
         self.end()
-        return Cansol(solver.getObjVal(), cansol, solver.getGap())
+        return Cansol2M(solver.getObjVal(), cansol, solver.getGap())
     
 class CPLEX(Predict):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -79,7 +79,7 @@ class CPLEX(Predict):
         self.time_limit = kwargs.get("time_limit", 10)
         ... # tackle parameters
     
-    def work(self, input: Graphencode2Predict) -> Cansol:    
+    def work(self, input: Graphencode2Predict) -> Cansol2M:    
         
         self.begin()
         
@@ -94,7 +94,7 @@ class CPLEX(Predict):
             cansol[var_name] = var_value
 
         self.end()
-        return Cansol(model.solution.get_objective_value(), cansol, model.solution.MIP.get_mip_relative_gap())
+        return Cansol2M(model.solution.get_objective_value(), cansol, model.solution.MIP.get_mip_relative_gap())
 
 
 class GCN(Predict):
@@ -105,7 +105,7 @@ class GCN(Predict):
             self.train_data_dir = kwargs["train_data_dir"]
         ... # tackle parameters 
  
-    def work(self, input: Graphencode2Predict) -> PScores:    
+    def work(self, input: Graphencode2Predict) -> Cantsol:    
         
         self.begin()
         # first check the model, if there is not then train using train instances
@@ -131,33 +131,43 @@ class GCN(Predict):
         if os.path.exists(model_path): # TODO : add parameter for model name
             pathstr = model_path
         else :
-            print("--------------------------------")
             if not os.path.isdir('./logs/'):
                 os.mkdir('./logs')
-            if not os.path.isdir(f'./logs/{self.taskname}'):
-                os.mkdir(f'./logs/{self.taskname}')
-            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}'):
-                os.mkdir(f'./logs/{self.taskname}/{instance_name}')
-            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
-                os.mkdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
-            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
-                os.mkdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/')
-            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/train/'): # TODO : add parameter for model name
-                os.mkdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/train/')
-            W = f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/train/'
+            if not os.path.isdir(f'./logs/train/'):
+                os.mkdir('./logs/train')
+            if not os.path.isdir(f'./logs/train/{self.taskname}/'):
+                os.mkdir(f'./logs/train/{self.taskname}')
+            if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/'):
+                os.mkdir(f'./logs/train/{self.taskname}/{instance_name}')
+            if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
+                os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
+            if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
+                os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
+            
+            if not os.path.isdir('./Model/'):
+                os.mkdir('./Model/')
+            if not os.path.isdir(f'./Model/{self.taskname}'):
+                os.mkdir(f'./Model/{self.taskname}')
+            if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}'):
+                os.mkdir(f'./Model/{self.taskname}/{instance_name}')
+            if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
+                os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
+            if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}'):
+                os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
+            
+            W = f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
             if self.sequence_name[0][-1] == 'r':
-                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", "cpu", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
+                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", f"{self.device}", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
                                 "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}", "--random_feature"])    
             else:
-                print("LKTLKYLKYLKYLKYLKYLKYLKYLKYLKYKL")
-                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", "cpu", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
+                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", f"{self.device}", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
                                 "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}"])    
             pathstr = model_path
             # train_data_dir + LP / Pickle    
             
             
             
-        policy = GNNPolicy().to(DEVICE)
+        policy = GNNPolicy(random_feature=True if self.sequence_name[0][-1] == 'r' else False).to(DEVICE)
         state = torch.load(pathstr, map_location=torch.device(DEVICE)) # TODO: check why cuda?
         policy.load_state_dict(state)
         
@@ -176,4 +186,4 @@ class GCN(Predict):
         for i in range(len(input.v_map)):
             scores.append([i, all_varname[i], BD[i].item()])
         self.end()
-        return PScores(input.b_vars, scores)
+        return Cantsol(scores)
