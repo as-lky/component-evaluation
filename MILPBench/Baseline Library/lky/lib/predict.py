@@ -32,7 +32,7 @@ class Predict(Component):
 class Gurobi(Predict):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 10)
+        self.time_limit = kwargs.get("time_limit") or 10
         ... # tackle parameters
     
     def work(self, input: Graphencode2Predict) -> Cansol2M:    
@@ -53,7 +53,7 @@ class Gurobi(Predict):
 class SCIP(Predict):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 10)
+        self.time_limit = kwargs.get("time_limit") or 10
         ... # tackle parameters
     
     def work(self, input: Graphencode2Predict) -> Cansol2M:    
@@ -164,8 +164,6 @@ class GCN(Predict):
                                 "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}"])    
             pathstr = model_path
             # train_data_dir + LP / Pickle    
-            
-            
             
         policy = GNNPolicy(random_feature=True if self.sequence_name[0][-1] == 'r' else False).to(DEVICE)
         state = torch.load(pathstr, map_location=torch.device(DEVICE)) # TODO: check why cuda?

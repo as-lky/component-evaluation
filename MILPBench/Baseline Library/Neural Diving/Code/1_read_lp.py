@@ -140,7 +140,7 @@ def optimize(
         
         for i in range(m):
             for j in range(k[i]):
-                edge_indices[0].append(i)
+                edge_indices[0].append(i + n) # 加点数n
                 edge_indices[1].append(site[i][j])
                 edge_features.append([value[i][j]])
         

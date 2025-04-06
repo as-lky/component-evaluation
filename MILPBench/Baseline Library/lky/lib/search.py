@@ -9,6 +9,7 @@ from .help.LIH.help import greedy_one as greedy_one_LIH, split_problem as split_
 from .help.MIH.help import greedy_one as greedy_one_MIH, split_problem as split_problem_MIH
 from .help.NALNS.help import greedy_one as greedy_one_NALNS, split_problem as split_problem_NALNS
 from .help.LNS.help import split_problem as split_problem_LNS
+from .help.ACP.help import split_problem as split_problem_ACP
 from .mod import Component, Modify2Search, Cansol2S
 
 from pyscipopt import SCIP_PARAMSETTING
@@ -30,6 +31,8 @@ class Search(Component):
             cls = LNS
         elif component == "NALNS":
             cls = NALNS
+        elif component == "ACP":
+            cls = ACP
         else:
             raise ValueError("Search component type is not defined")
 
@@ -366,23 +369,219 @@ class Gurobi(Search): # solver
         
         return model.MIPGap, model.ObjVal
         
+
+class ACP(Search): # solver
+    
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
+        super().__init__(component, device, taskname, instance, sequence_name)
+        self.time_limit = kwargs.get('time_limit') or 10
+        self.block = kwargs.get('block') or 2
+        self.max_turn_ratio = kwargs.get('max_turn_ratio') or 0.1
+        ... # tackle parameters
+
+    def work(self, input: Cansol2S):
+        self.begin()
+
+        '''
+        Run LNS (Large Neighborhood Search), passing in the lp file. 'block' is the number of blocks (default 2), 'time_limit' is the total running time limit (default 4000), and 'max_turn_ratio' is the maximum running time ratio for each turn (default 0.1).
+        '''
+        #Set KK as the initial number of blocks and PP as the selected number of blocks to optimize after dividing the constraints into KK blocks
+        KK = self.block
+        PP = 1
+        max_turn = 5
+        epsilon = 0.01
+        #Retrieve the problem model after splitting and create a new folder named "ACP_Pickle"
+        max_turn_ratio = self.max_turn_ratio
+        time_limit = self.time_limit
+        max_turn_time = max_turn_ratio * time_limit
+        n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type, value_to_num = split_problem_ACP(self.instance)    
+        # Build a variable dictionar
+        num_to_value = {value : key for key, value in value_to_num.items()}
+
+        #Get the start time
+        begin_time = time.time()
+        
+        #Initialize the initial solution and initial answer, where the initial solution is the worst initial solution
+        
+        ans, ansx = input.objval, []
+        
+        tmp = gp.read(self.instance)
+        for var in tmp.getVars():
+            ansx.append(input.cansol[var.VarName])
+            
+        print(f"初始解目标值为：{ans}")
+        
+        #Constraint block labels, where cons_color[i] represents which block the i-th constraint belongs to
+        cons_color = np.zeros(m, int)
+        
+        #Initialize the initial solution and initial answer, where the initial solution is the worst initial solution
+        last = ans
+        
+        #Initialize the number of rounds below the threshold, which can be either 0 or 1 with little difference.
+        turn = 1
+        #Continue to the next iteration as long as it hasn't reached the maximum running time
+        while(time.time() - begin_time <= time_limit):
+            print("KK = ", KK)
+            print("PP = ", PP)
+            #Randomly divide the decision variables into KK blocks
+            for i in range(m):
+                cons_color[i] = random.randint(1, KK)
+            now_cons_color = 1
+            #Set all decision variables involved in a randomly selected constraint block as variables to be optimized
+            #color[i] = 1 indicates that the i-th decision variable is selected as a variable to be optimized
+            color = np.zeros(n, int)
+            now_color = 1
+            color_num = 0
+            for i in range(m):
+                if(PP == 1 and cons_color[i] == now_cons_color):
+                    for j in range(k[i]):
+                        color[site[i][j]] = 1
+                        color_num += 1
+                if(PP > 1 and cons_color[i] != now_cons_color):
+                    for j in range(k[i]):
+                        color[site[i][j]] = 1
+                        color_num += 1
+            #site_to_color[i]represents which decision variable is the i-th decision variable in this block
+            #color_to_site[i]represents which decision variable is mapped to the i-th decision variable in this block
+            #vertex_color_num represents the number of decision variables in this block currently
+            site_to_color = np.zeros(n, int)
+            color_to_site = np.zeros(n, int)
+            vertex_color_num = 0
+            #Define the model to solve
+            model = gp.Model("ACP")
+            x = []
+            for i in range(n):
+                if(color[i] == now_color):
+                    color_to_site[vertex_color_num] = i
+                    site_to_color[i] = vertex_color_num
+                    vertex_color_num += 1
+                    if(value_type[i] == 'B'):
+                        now_val = model.addVar(lb = lower_bound[i], ub = upper_bound[i], vtype = GRB.BINARY)
+                    elif(value_type[i] == 'I'):
+                        now_val = model.addVar(lb = lower_bound[i], ub = upper_bound[i], vtype = GRB.INTEGER)
+                    else:
+                        now_val = model.addVar(lb = lower_bound[i], ub = upper_bound[i], vtype = GRB.CONTINUOUS)
+                    x.append(now_val)
+            #Define decision variables x[]
+            #x = model.addMVar((vertex_color_num), lb = 0, ub = 1, vtype = GRB.BINARY)  #lb is the lower bound for the variable， ub is the upper bound for the variables
+            #Set up the objective function and optimization objective (maximization/minimization), only optimizing the variables selected for optimization
+            objsum = 0
+            objtemp = 0
+            for i in range(n):
+                if(color[i] == now_color):
+                    objsum += x[site_to_color[i]] * coefficient[i]
+                else:
+                    objtemp += ansx[i] * coefficient[i]
+            if(obj_type == 'maximize'):
+                model.setObjective(objsum, GRB.MAXIMIZE)
+            else:
+                model.setObjective(objsum, GRB.MINIMIZE)
+            #Add m constraints, only adding those constraints that involve variables in this block
+            for i in range(m): 
+                flag = 0
+                constr = 0
+                for j in range(k[i]):
+                    if(color[site[i][j]] == now_color):
+                        flag = 1
+                        constr += x[site_to_color[site[i][j]]] * value[i][j]
+                    else:
+                        constr += ansx[site[i][j]] * value[i][j]
+                if(flag):
+                    if(constraint_type[i] == 1):
+                        model.addConstr(constr <= constraint[i])
+                    elif(constraint_type[i] == 2):
+                        model.addConstr(constr >= constraint[i])
+                    else:
+                        model.addConstr(constr == constraint[i])
+            
+            #Set the maximum solving time
+            model.setParam('TimeLimit', min(max(time_limit - (time.time() - begin_time), 0), max_turn_time))
+            #Optimize
+            model.optimize()
+            
+            try:
+                #Calculate the current objective value
+                temp = model.ObjVal + objtemp
+                print(f"当前目标值为：{temp}")
+                bestX = []
+                for i in range(vertex_color_num):
+                    bestX.append(x[i].X)
+                #print(bestX)
+
+                if(obj_type == 'maximize'):
+                    #Update the current best solution and best ans
+                    if(temp > ans):
+                        for i in range(vertex_color_num):
+                            ansx[color_to_site[i]] = bestX[i]
+                        ans = temp
+                    #Adaptive block number change
+                    if((ans - last <= epsilon * ans)):
+                        turn += 1
+                        if(turn == max_turn):
+                            if(KK > 2 and PP == 1):
+                                KK -= 1
+                            else:
+                                KK += 1
+                                PP += 1
+                            turn = 1
+                    else:
+                        turn = 0
+                else:
+                    if(temp < ans):
+                        for i in range(vertex_color_num):
+                            ansx[color_to_site[i]] = bestX[i]
+                        ans = temp
+                    #Adaptive block number change
+                    if((last - ans <= epsilon * ans)):
+                        turn += 1
+                        if(turn == max_turn):
+                            if(KK > 2 and PP == 1):
+                                KK -= 1
+                            else:
+                                KK += 1
+                                PP += 1
+                            turn = 1
+                    else:
+                        turn = 0
+                
+                if(model.MIPGap != 0):
+                    if(KK == 2 and PP > 1):
+                        KK -= 1
+                        PP -= 1
+                    else:
+                        KK += 1
+                    turn = 0
+                last = ans
+            except:
+                try:
+                    model.computeIIS()
+                    if(KK > 2 and PP == 1):
+                        KK -= 1
+                    else:
+                        KK += 1
+                        PP += 1
+                    turn = 1
+                except:
+                    if(KK == 2 and PP > 1):
+                        KK -= 1
+                        PP -= 1
+                    else:
+                        KK += 1
+                    turn = 0                    
+                print("This turn can't improve more")
+        new_ansx = {}
+        for i in range(len(ansx)):
+            new_ansx[num_to_value[i]] = ansx[i]
+        
+        self.end()
+        
+        return ans, ans
+    
         
 class SCIP(Search): # solver
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        if taskname == "IP": 
-            dhp = 1
-        elif taskname == "IS":
-            dhp = 15 
-        elif taskname == "WA":
-            dhp = 5 
-        elif taskname == "CA":
-            dhp = 10
-        else :
-            dhp = 0 # default hyperparameter
-                
-        self.delta = kwargs.get('delta') or dhp
         self.time_limit = kwargs.get('time_limit') or 10
         
         ... # tackle parameters

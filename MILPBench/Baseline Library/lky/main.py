@@ -52,7 +52,10 @@ if __name__ == "__main__":
     print(now[1])
     end_time = time.time()
     
-    des = f'./logs/work/{args.taskname}/{str(sequence_name)}/result.txt'
+    sn = ""
+    for _ in sequence_name:
+        sn += _ + "_"
+    des = f'./logs/work/{args.taskname}/{sn}/result.txt'
     with open(des, 'w') as f:
         f.write(f"{gap * 100:0.4f} {end_time - start_time:0.4f}")
     print("the result has been saved!")

@@ -10,7 +10,10 @@ class Preprocess(Component): # no usage for now
         
         print('Preprocess Component is working ...')
         
-        sn = str(self.sequence_name)
+  #      sn = str(self.sequence_name)
+        sn = ""
+        for _ in self.sequence_name:
+            sn += _ + "_"
         if not os.path.isdir(f'./logs'):
             os.mkdir(f'./logs')
         if not os.path.isdir(f'./logs/work'):

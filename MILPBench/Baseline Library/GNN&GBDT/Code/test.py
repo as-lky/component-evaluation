@@ -672,7 +672,7 @@ def parse_args():
     parser.add_argument("--id", type = int, default = 0, help = 'The number of instances.')
     parser.add_argument("--problem", type = str, default = 'IS', help = 'The number of instances.')
     parser.add_argument("--difficulty", type = str, default = 'easy', help = 'The number of instances.')
-    parser.add_argument("--fix", type = float, default = 0.6, help = 'time.')
+    parser.add_argument("--fix", type = float, default = 0.6, help ='predict rate.')
     parser.add_argument("--set_time", type = int, default = 100, help = 'set_time.')
     parser.add_argument("--rate", type = float, default = 0.4, help = 'sub rate.')
     return parser.parse_args()
