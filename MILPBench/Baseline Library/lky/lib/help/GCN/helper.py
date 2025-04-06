@@ -348,7 +348,7 @@ def get_BG_from_GRB(ins_name):
     
     return A,v_map,v_nodes,c_nodes,b_vars       
     
-def get_a_new2(ins_name):
+def get_a_new2(ins_name, random_feature=False):
     epsilon = 1e-6
 
     # vars:  [obj coeff, norm_coeff, degree, Bin?]
@@ -371,13 +371,15 @@ def get_a_new2(ins_name):
     emb_num = 15
 
     for i in range(len(mvars)):
-        tp = [0] * ori_start
+        tp = [float(0)] * ori_start
         tp[3] = 0
         tp[4] = 1e+20
         # tp=[0,0,0,0,0]
         if mvars[i].vtype() == 'BINARY':
             tp[ori_start - 1] = 1
             b_vars.append(i)
+        if random_feature:
+            tp.append(random.random())
 
         v_nodes.append(tp)
     v_map = {}
@@ -389,7 +391,9 @@ def get_a_new2(ins_name):
     obj_cons = [0] * (nvars + 2)
     indices_spr = [[], []]
     values_spr = []
-    obj_node = [0, 0, 0, 0]
+    obj_node = [float(0)] * 4
+    if random_feature:
+        obj_node.append(random.random())
     for e in obj:
         vnm = e.vartuple[0].name
         v = obj[e]
@@ -455,7 +459,10 @@ def get_a_new2(ins_name):
             # v_nodes[v_indx][3]+=cind*coeff[k]
             summation += coeff[k]
         llc = max(len(coeff), 1)
-        c_nodes.append([summation / llc, llc, rhs, sense])
+        if random_feature:
+            c_nodes.append([summation / llc, llc, rhs, sense, random.random()])
+        else :
+            c_nodes.append([summation / llc, llc, rhs, sense])
     c_nodes.append(obj_node)
     v_nodes = torch.as_tensor(v_nodes, dtype=torch.float32).to(device)
     c_nodes = torch.as_tensor(c_nodes, dtype=torch.float32).to(device)

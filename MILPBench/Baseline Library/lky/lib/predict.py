@@ -3,6 +3,7 @@ import os
 import re
 import gurobipy as gp
 import pyscipopt
+import subprocess
 #import cplex
 from typing import Type, cast, Self
 from .mod import Component, Graphencode2Predict, Predict2Modify, PScores, Cansol
@@ -124,14 +125,37 @@ class GCN(Predict):
             instance_name = instance_name.group(1)
             
         pathstr = ""
-        # 模型训练不需要以sequence_name做路径 因为其与其他部分无关 只保留instance_name可以确保可复用性
-        if os.path.exists(f'./Model/{self.taskname}/{instance_name}/GCN_predict.pth'): # TODO : add parameter for model name
-            pathstr = f'./Model/{self.taskname}/{instance_name}/GCN_predict.pth'
+        # 模型训练不需要以sequence_name做路径 因为其与其他部分无关 只保留instance_name 和参数可以确保可复用性 ×
+        model_dir = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
+        model_path = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/model_best.pth'
+        if os.path.exists(model_path): # TODO : add parameter for model name
+            pathstr = model_path
         else :
-            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/'):
-                os.mkdir(f'./logs/{self.taskname}/{instance_name}/')
-            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/train/'): # TODO : add parameter for model name
-                os.mkdir(f'./logs/{self.taskname}/{instance_name}/train/')
+            print("--------------------------------")
+            if not os.path.isdir('./logs/'):
+                os.mkdir('./logs')
+            if not os.path.isdir(f'./logs/{self.taskname}'):
+                os.mkdir(f'./logs/{self.taskname}')
+            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}'):
+                os.mkdir(f'./logs/{self.taskname}/{instance_name}')
+            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
+                os.mkdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
+            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
+                os.mkdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/')
+            if not os.path.isdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/train/'): # TODO : add parameter for model name
+                os.mkdir(f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/train/')
+            W = f'./logs/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/train/'
+            if self.sequence_name[0][-1] == 'r':
+                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", "cpu", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
+                                "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}", "--random_feature"])    
+            else:
+                print("LKTLKYLKYLKYLKYLKYLKYLKYLKYLKYKL")
+                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", "cpu", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
+                                "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}"])    
+            pathstr = model_path
+            # train_data_dir + LP / Pickle    
+            
+            
             
         policy = GNNPolicy().to(DEVICE)
         state = torch.load(pathstr, map_location=torch.device(DEVICE)) # TODO: check why cuda?

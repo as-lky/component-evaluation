@@ -2,7 +2,6 @@ from decimal import DefaultContext
 import numpy as np
 import torch 
 from typing import Self, Type, cast
-from abc import abstractmethod
 from .mod import Component, Preprocess2Graphencode, Graphencode2Predict
 from .help.GCN.helper import get_a_new2
 from .help.GCN.GCN import postion_get
@@ -11,8 +10,12 @@ class Graphencode(Component):
     def __new__(cls, component, *args, **kwargs):
         if component == "bi":
             cls = Bipartite
+        elif component == 'bir':
+            cls = BipartiteR
         elif component == "tri":
             cls = Tripartite
+        elif component == "trir":
+            cls = TripartiteR
         elif component == "default":
             cls = Default
         else:
@@ -48,6 +51,33 @@ class Bipartite(Graphencode):
         
         return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
             v_map, v_nodes, c_nodes, b_vars )
+        
+        
+        
+class BipartiteR(Graphencode):
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
+        super().__init__(component, device, taskname, instance, sequence_name)
+        ... # tackle parameters
+
+    def work(self) -> Graphencode2Predict:
+        
+        self.begin()
+        A, v_map, v_nodes, c_nodes, b_vars = get_a_new2(self.instance, random_feature=True)
+        constraint_features = c_nodes.cpu()
+        constraint_features[torch.isnan(constraint_features)] = 1  # remove nan value
+        variable_features = v_nodes
+        if self.taskname == "IP":
+            variable_features = postion_get(variable_features, self.device) # position ? 
+        edge_indices = A._indices()
+        edge_features = A._values().unsqueeze(1)
+        edge_features = torch.ones(edge_features.shape)
+
+        self.end()
+        
+        return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
+            v_map, v_nodes, c_nodes, b_vars )
+
+
 
 class Tripartite(Graphencode):
     # TODO : get tripartite graph code
@@ -73,6 +103,34 @@ class Tripartite(Graphencode):
         
         return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
             v_map, v_nodes, c_nodes, b_vars )
+
+
+
+class TripartiteR(Graphencode):
+    # TODO : get tripartite graph code
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
+        super().__init__(component, device, taskname, instance, sequence_name)
+        ... # tackle parameters
+
+    def work(self) -> Graphencode2Predict:
+        
+        self.begin()
+        
+        A, v_map, v_nodes, c_nodes, b_vars = get_a_new2(self.instance, random_feature=True)
+        constraint_features = c_nodes.cpu()
+        constraint_features[torch.isnan(constraint_features)] = 1  # remove nan value
+        variable_features = v_nodes
+        if self.taskname == "IP":
+            variable_features = postion_get(variable_features, self.device) # position ? 
+        edge_indices = A._indices()
+        edge_features = A._values().unsqueeze(1)
+        edge_features = torch.ones(edge_features.shape)
+
+        self.end()
+        
+        return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
+            v_map, v_nodes, c_nodes, b_vars )
+
 
 class Default(Graphencode):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):

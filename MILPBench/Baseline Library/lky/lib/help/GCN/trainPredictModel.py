@@ -16,15 +16,15 @@ torch.backends.cudnn.benchmark = True
 parser = argparse.ArgumentParser(description="receive train instruction from predict component")
 parser.add_argument("--device", required=True, choices=["cpu", "cuda"], help="cpu or cuda")
 parser.add_argument("--taskname", choices=["IP", "IS", "WA", "CA"], help="the task name")
-parser.add_argument("--train_data_dir", help="the train instances input folder")
-parser.add_argument("--log_dir", help="the train log directory")
-parser.add_argument("--model_save_dir", help="the model output directory")
+parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")
+parser.add_argument("--log_dir", type=str, help="the train log directory")
+parser.add_argument("--model_save_dir", type=str, help="the model output directory")
+parser.add_argument("--random_feature", action='store_true', help="whether use random feature or not")
 args = parser.parse_args()
 
 model_save_path = args.model_save_dir
 log_save_path = args.log_dir
 log_file = open(f'{log_save_path}/GCNtrain.log', 'wb')
-#TaskName = args.taskname
 
 #set params
 LEARNING_RATE = 0.001
@@ -36,30 +36,30 @@ WEIGHT_NORM = 100
 DEVICE = torch.device("cuda:1")
 DEVICE = torch.device("cpu")
 
-DIR_BG = f'./dataset/{TaskName}/BG'
-DIR_SOL = f'./dataset/{TaskName}/solution'
-
+DIR_BG = args.train_data_dir + 'LP'
+DIR_SOL = args.train_data_dir + 'Pickle'
+print(DIR_BG)
 
 
 sample_names = os.listdir(DIR_BG)
-sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('bg','sol')) for name in sample_names]
+sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names]
 random.seed(0)
 random.shuffle(sample_files)
 train_files = sample_files[: int(0.80 * len(sample_files))]
 valid_files = sample_files[int(0.80 * len(sample_files)) :]
-if TaskName=="IP":
+if args.taskname=="IP":
     #Add position embedding for IP model, due to the strong symmetry
     from GCN import GNNPolicy_position as GNNPolicy
     from GCN import GraphDataset_position as GraphDataset
 else:
     from GCN import GraphDataset, GNNPolicy
 
-train_data = GraphDataset(train_files)
+train_data = GraphDataset(train_files, random_feature=args.random_feature)
 train_loader = torch_geometric.loader.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-valid_data = GraphDataset(valid_files)
+valid_data = GraphDataset(valid_files, random_feature=args.random_feature)
 valid_loader = torch_geometric.loader.DataLoader(valid_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
-PredictModel = GNNPolicy().to(DEVICE)
+PredictModel = GNNPolicy(random_feature=args.random_feature).to(DEVICE)
 
 def EnergyWeightNorm(task):
     if task=="IP":
