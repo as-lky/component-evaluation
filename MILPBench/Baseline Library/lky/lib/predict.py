@@ -199,6 +199,8 @@ class GCN(Predict):
         super().__init__(component, device, taskname, instance, sequence_name)
         if "train_data_dir" in kwargs:
             self.train_data_dir = kwargs["train_data_dir"]
+        else :
+            self.train_data_dir = None
         ... # tackle parameters 
  
     def work(self, input: Graphencode2Predict) -> Cantsol:    

@@ -93,7 +93,6 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                     #print(now_col)
                     
     model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
-    
     model.optimize()
     #print(time.time() - begin_time)
     try:
@@ -106,7 +105,9 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                     new_sol.append(x[site_to_new[i]].X)
                 else:
                     new_sol.append((int)(x[site_to_new[i]].X))
-            
+        if model.NumVars == 0:
+            return 1, new_sol, model.ObjVal, 0
+        
         return 1, new_sol, model.ObjVal, model.MIPGap
     except:
         #model.computeIIS()

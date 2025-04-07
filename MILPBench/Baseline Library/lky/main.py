@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description=" receive select instruction from h
 parser.add_argument("--device", required=True, choices=["cpu", "cuda"], help="cpu or cuda")
 parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
-parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
+parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")
 
 # log?
 parser.add_argument("--graphencode", required=True, choices=["bi", "tri", "bir", "trir", "default"], help="graph encode component")
@@ -22,7 +22,7 @@ parser.add_argument("--predict_time_limit", type=int, help="time limit for predi
 
 # search for model firstly 
 
-parser.add_argument("--modify", required=True, choices=["sr", "1r", "2r", "np", "default"], help="modify component")
+parser.add_argument("--modify", required=True, choices=["sr", "nr", "np", "default"], help="modify component")
 parser.add_argument("--search", required=True, choices=["gurobi", "scip", "LIH", "MIH", "LNS", "NALNS", "ACP"], help="search component")
 parser.add_argument("--search_time_limit", type=int, help="time limit for searching")
 
@@ -47,9 +47,7 @@ if __name__ == "__main__":
     now = modify_component.work(now)
     now = search_component.work(now)
 
-    # gap
-    gap = now[0]
-    print(now[1])
+    # now : gap, value
     end_time = time.time()
     
     sn = ""

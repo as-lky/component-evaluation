@@ -4,6 +4,7 @@ from .mod import Component, Predict2Modify, Modify2Search, Cantsol, Cansol2M, Ca
 from .help.NEURALDIVING.read_lp import get_a_new2
 from .help.NEURALDIVING.test import Gurobi_solver 
 from pyscipopt import SCIP_PARAMSETTING
+import numpy as np
 import gurobipy as gp
 import pyscipopt as scp        
 import os
@@ -20,6 +21,8 @@ class Modify(Component):
             cls = Np
         elif component == 'sr':
             cls = Sr
+        elif component == "nr":
+            cls = Nr
         elif component == "default":
             cls = Default
         else:
@@ -126,11 +129,11 @@ class Np(Modify): # build a new problem based on the prediction
             log("MODIFY INFEASIBLE", des)
             raise INFEASIBLEERROR("Modify infeasible")
         
-        self.end()
         cansol = {}
         for var in m1.getVars():
             cansol[var.name] = m1.getVal(var)
         
+        self.end()
         return Cansol2S(m1.getGap(), cansol, m1.getObjVal())
         
         
@@ -167,9 +170,9 @@ class Sr(Modify): # build a new problem based on the prediction
             rate = (int)(0.1 * turn * n)
             for i in range(n):
                 if(input.select[i] >= new_select[rate]):
-                    choose.append(1)
-                else:
                     choose.append(0)
+                else:
+                    choose.append(1)
             #print(0.1 * turn, sum(choose) / n)
             flag, sol, obj, gap = Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, time_limit, obj_type, now_sol, choose, lower_bound, upper_bound, value_type)
             if(flag == 1):
@@ -186,11 +189,90 @@ class Sr(Modify): # build a new problem based on the prediction
             log("MODIFY INFEASIBLE", des)
             raise INFEASIBLEERROR("Modify infeasible")
         
-        self.end()
         cansol = {}
         for i in range(n):
             cansol[num_to_value[i]] = result_pair[0][i]
+        
+        self.end()
         return Cansol2S(result_pair[1], cansol, result_pair[2])
+        
+        
+class Nr(Modify): # build a new problem based on the prediction
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
+        super().__init__(component, device, taskname, instance, sequence_name)
+        self.time_limit = kwargs.get("time_limit", 10)
+        
+        # tackle parameters    
+
+    def work(self, input: Cantsol) -> Cansol2S:
+        self.begin()
+        constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value=get_a_new2(self.instance)
+
+        color = np.zeros(n) # 1: discard
+        
+        now_sol = input.logits.to('cpu').detach().numpy() 
+
+        for i in range(n):
+            if(value_type[i] != 'C'):
+                now_sol[i] = int(now_sol[i] + 0.5)
+            now_sol[i] = min(now_sol[i], upper_bound[i])
+            now_sol[i] = max(now_sol[i], lower_bound[i])
+ 
+ 
+        F = 0
+        result_pair = (0, 0, 0)
+        for LL in range(3): # 3 times repair. If can't then fail
+            discard = []
+            for j in range(m):
+                constr = 0
+                flag = 0
+                for l in range(k[j]):
+                    if color[site[j][l]] == 1:
+                        flag = 1
+                        break
+                    else:
+                       constr += now_sol[site[j][l]] * value[j][l]
+                if flag == 1:
+                    for l in range(k[j]):
+                        if color[site[j][l]] == 0:
+                            discard.append(site[j][l])
+                    continue
+                if(constraint_type[j] == 1):
+                    if(constr > constraint[j]):
+                        for l in range(k[j]):
+                            if color[site[j][l]] == 0:
+                                discard.append(site[j][l])
+                else:
+                    if(constr < constraint[j]):
+                        for l in range(k[j]):
+                            if color[site[j][l]] == 0:
+                                discard.append(site[j][l])
+            for i in discard:
+                color[i] = 1
+                
+            flag, sol, obj, gap = Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, self.time_limit, obj_type, now_sol, color, lower_bound, upper_bound, value_type)
+
+            if flag == 1:
+                result_pair = (sol, obj, gap)
+                F = 1
+                break
+        
+        if F == 0:
+            sn = ""
+            for _ in self.sequence_name:
+                sn += _ + "_"
+            des = f'./logs/work/{self.taskname}/{sn}/result.txt'
+            log("ERROR", des)
+            log("MODIFY INFEASIBLE", des)
+            raise INFEASIBLEERROR("Modify infeasible")
+        
+        cansol = {}
+        for i in range(n):
+            cansol[num_to_value[i]] = result_pair[0][i]
+
+        self.end()
+        return Cansol2S(result_pair[1], cansol, result_pair[2])
+        
         
         
 class Default(Modify): # build a new problem based on the prediction
