@@ -115,7 +115,7 @@ def get_a_new2(instance, random_feature = False):
             edge_indices[1].append(site[i][j])
             edge_features.append([value[i][j]])
 
-    return constraint_features, edge_indices, edge_features, variable_features
+    return constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value
 
 def optimize(
     mode : str,

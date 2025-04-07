@@ -79,7 +79,8 @@ class GraphDataset(torch_geometric.data.Dataset):
             with open(pk, "rb") as f:
                 [variable_features, constraint_features, edge_indices, edge_features, solution] = pickle.load(f)    
         else:
-            variable_features, constraint_features, edge_indices, edge_features, num_to_value, n = get_a_new2(instance, self.random_feature, True)
+            constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2(instance, self.random_feature)
+            
             with open(solution_path, "rb") as f:
                 solution = pickle.load(f)[0]
             sol = []
@@ -127,7 +128,6 @@ def process(policy, data_loader, device, optimizer=None):
     """
     mean_loss = 0
     mean_acc = 0
-    print(data_loader)
 
     n_samples_processed = 0
     with torch.set_grad_enabled(optimizer is not None):
@@ -189,7 +189,7 @@ def process(policy, data_loader, device, optimizer=None):
     # mean_acc /= n_samples_processed
     return mean_loss
 
-def get_a_new2(instance, random_feature = False, help = False):
+def get_a_new2(instance, random_feature = False):
     model = gp.read(instance)
     value_to_num = {}
     num_to_value = {}
@@ -295,10 +295,7 @@ def get_a_new2(instance, random_feature = False, help = False):
             edge_indices[1].append(site[i][j])
             edge_features.append([value[i][j]])
 
-    if not help:
-        return constraint_features, edge_indices, edge_features, variable_features
-    else:
-        return constraint_features, edge_indices, edge_features, variable_features, num_to_value, n
+    return constraint_features, edge_indices, edge_features, variable_features, num_to_value, n
 
 def train(
     train_data_dir: str,
@@ -362,7 +359,7 @@ def parse_args():
     parser.add_argument("--random_feature", action='store_true', help="whether use random feature or not")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size for training.")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate for the optimizer.")
-    parser.add_argument("--num_epochs", type=int, default=30, help="Number of epochs to train for.")
+    parser.add_argument("--num_epochs", type=int, default=2, help="Number of epochs to train for.")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to use for training.")
     return parser.parse_args()
 

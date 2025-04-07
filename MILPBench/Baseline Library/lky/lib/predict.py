@@ -8,6 +8,8 @@ import subprocess
 #import cplex
 from typing import Type, cast, Self
 from .mod import Component, Graphencode2Predict, Predict2Modify, Cantsol, Cansol2M
+from .help.NEURALDIVING.test import GraphDataset
+import torch_geometric
 
 class Predict(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -218,6 +220,8 @@ class GCN(Predict):
         # 模型训练不需要以sequence_name做路径 因为其与其他部分无关 只保留instance_name 和参数可以确保可复用性 ×
         model_dir = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
         model_path = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/model_best.pkl'
+        W = f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
+
         if os.path.exists(model_path): # TODO : add parameter for model name
             pathstr = model_path
         else :
@@ -245,7 +249,6 @@ class GCN(Predict):
             if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}'):
                 os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
             
-            W = f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
 #            if self.sequence_name[0][-1] == 'r':
 #                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", f"{self.device}", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
 #                                "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}", "--random_feature"])    
@@ -267,14 +270,25 @@ class GCN(Predict):
         policy = GNNPolicy(random_feature=True if self.sequence_name[0][-1] == 'r' else False).to(DEVICE)
         policy.load_state_dict(torch.load(model_path, policy.state_dict()))
         
-        logits, select = policy(
-            input.constraint_features.to(DEVICE),
-            input.edge_indices.to(DEVICE),
-            input.edge_features.to(DEVICE),
-            input.variable_features.to(DEVICE),
-        )
-        print("logits : ", logits)
-        print("select : ", select)
+        instance_name = os.path.basename(self.instance)
+        instance_name = re.match(r"(.*_[0-9]+)\.lp", instance_name)
+        instance_name = instance_name.group(1)
+        pk = os.path.join(W, instance_name) + '.pickle'
+        
+        file = [pk]
+        data = GraphDataset(file)
+        loader = torch_geometric.loader.DataLoader(data, batch_size = 1)
+
+        logits, select = None, None
+        for batch in loader:
+            batch = batch.to(self.device)
+            # Compute the logits (i.e. pre-softmax activations) according to the policy on the concatenated graphs
+            logits, select = policy(
+                batch.constraint_features,
+                batch.edge_index,
+                batch.edge_attr,
+                batch.variable_features,
+            )
 
         self.end()
         return Cantsol(logits, select)

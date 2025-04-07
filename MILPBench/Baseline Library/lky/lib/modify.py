@@ -1,7 +1,7 @@
 import torch
 from typing import Type, cast, Self
-from .mod import Component, Predict2Modify, Modify2Search, Cantsol, Cansol2M, Cansol2S
-from .help.GCN.helper import get_a_new2
+from .mod import Component, Predict2Modify, Modify2Search, Cantsol, Cansol2M, Cansol2S, INFEASIBLEERROR
+from .help.NEURALDIVING.read_lp import get_a_new2
 from .help.NEURALDIVING.test import Gurobi_solver 
 from pyscipopt import SCIP_PARAMSETTING
 import gurobipy as gp
@@ -9,12 +9,17 @@ import pyscipopt as scp
 import os
 
 
+def log(any, txt):
+    with open(txt, 'a')as f:
+        f.writelines(str(any))
+        f.writelines('\n')
+
 class Modify(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
         if component == "np":
             cls = Np
-        elif component == 'rs':
-            cls = Rs
+        elif component == 'sr':
+            cls = Sr
         elif component == "default":
             cls = Default
         else:
@@ -51,18 +56,14 @@ class Np(Modify): # build a new problem based on the prediction
     def work(self, input: Cantsol) -> Cansol2S:
         self.begin()
         
-        A, v_map, v_nodes, c_nodes, b_vars=get_a_new2(self.instance)
-        scores = input.scores
+        constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value=get_a_new2(self.instance)
+        select = input.select.to('cpu').detach().numpy() 
 
-        binary_name = [scores[i][1] for i in b_vars]
-        # get a list of (index, VariableName, Prob, -1, type)
-        for i in range(len(scores)):
-            type = "C"
-            if scores[i][1] in binary_name:
-                type = 'BINARY'
-            scores[i] += [-1, type]
-
-        scores=[x for x in scores if x[4]=='BINARY'] # get binary
+        scores = []
+        for i in range(n):
+            if value_type[i] == "BINARY":
+                scores.append([i, num_to_value[i], select[i], -1])
+        # get a list of (index, name, Prob, -1)
 
         scores.sort(key=lambda x:x[2], reverse=True)
 
@@ -89,7 +90,13 @@ class Np(Modify): # build a new problem based on the prediction
         m1.setHeuristics(SCIP_PARAMSETTING.AGGRESSIVE)#MIP focus
 
         instance_name = os.path.basename(self.instance)
-        log_path = f'./logs/work/{self.taskname}/{self.sequence_name}/{instance_name}.log'
+        
+        sn = ""
+        for _ in self.sequence_name:
+            sn += _ + "_"
+
+        
+        log_path = f'./logs/work/{self.taskname}/{sn}/{instance_name}.log'
         m1.setLogfile(log_path)
         m1.readProblem(self.instance)
 
@@ -110,6 +117,14 @@ class Np(Modify): # build a new problem based on the prediction
             m1.addCons(tmp_var >= x_star - tar_var, f'alpha_down_{i}')
         m1.addCons(scp.quicksum(ap for ap in alphas) <= self.delta, 'sum_alpha')
         m1.optimize()
+        if m1.getNSols() == 0:
+            sn = ""
+            for _ in self.sequence_name:
+                sn += _ + "_"
+            des = f'./logs/work/{self.taskname}/{sn}/result.txt'
+            log("ERROR", des)
+            log("MODIFY INFEASIBLE", des)
+            raise INFEASIBLEERROR("Modify infeasible")
         
         self.end()
         cansol = {}
@@ -120,7 +135,7 @@ class Np(Modify): # build a new problem based on the prediction
         
         
 
-class Rs(Modify): # build a new problem based on the prediction
+class Sr(Modify): # build a new problem based on the prediction
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 10)
@@ -129,104 +144,53 @@ class Rs(Modify): # build a new problem based on the prediction
 
     def work(self, input: Cantsol) -> Cansol2S:
         self.begin()
-        # scores a list of (index, VariableName, Prob)
-        
-        
         model = gp.read(self.instance)
-        value_to_num = {}
-        num_to_value = {}
-        value_to_type = {}
-        value_num = 0
-        #N represents the number of decision variables
-        #M represents the number of constraints
-        #K [i] represents the number of decision variables in the i-th constraint
-        #Site [i] [j] represents which decision variable is the jth decision variable of the i-th constraint
-        #Value [i] [j] represents the coefficient of the jth decision variable of the i-th constraint
-        #Constraint [i] represents the number to the right of the i-th constraint
-        #Constrict_type [i] represents the type of the i-th constraint, 1 represents<, 2 represents>, and 3 represents=
-        #Coefficient [i] represents the coefficient of the i-th decision variable in the objective function
-        n = model.NumVars
-        m = model.NumConstrs
-        k = []
-        site = []
-        value = []
-        constraint = []
-        constraint_type = []
-        for cnstr in model.getConstrs():
-            if(cnstr.Sense == '<'):
-                constraint_type.append(1)
-            elif(cnstr.Sense == '>'):
-                constraint_type.append(2) 
-            else:
-                constraint_type.append(3) 
-            
-            constraint.append(cnstr.RHS)
+        constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value=get_a_new2(self.instance)
 
-
-            now_site = []
-            now_value = []
-            row = model.getRow(cnstr)
-            k.append(row.size())
-            for i in range(row.size()):
-                if(row.getVar(i).VarName not in value_to_num.keys()):
-                    value_to_num[row.getVar(i).VarName] = value_num
-                    num_to_value[value_num] = row.getVar(i).VarName
-                    value_num += 1
-                now_site.append(value_to_num[row.getVar(i).VarName])
-                now_value.append(row.getCoeff(i))
-            site.append(now_site)
-            value.append(now_value)
-
-        coefficient = {}
-        lower_bound = {}
-        upper_bound = {}
-        value_type = {}
-        for val in model.getVars():
-            if(val.VarName not in value_to_num.keys()):
-                value_to_num[val.VarName] = value_num
-                num_to_value[value_num] = val.VarName
-                value_num += 1
-            coefficient[value_to_num[val.VarName]] = val.Obj
-            lower_bound[value_to_num[val.VarName]] = val.LB
-            upper_bound[value_to_num[val.VarName]] = val.UB
-            value_type[value_to_num[val.VarName]] = val.Vtype
-
-        #1 minimize, -1 maximize
-        obj_type = model.ModelSense
         time_limit = self.time_limit
 
-        now_sol = input.scores 
+        new_select = input.select.to('cpu').detach().numpy() 
+        new_select.sort()
+
+        now_sol = input.logits.to('cpu').detach().numpy() 
+         
         for i in range(n):
             if(value_type[i] != 'C'):
                 now_sol[i] = int(now_sol[i] + 0.5)
             now_sol[i] = min(now_sol[i], upper_bound[i])
             now_sol[i] = max(now_sol[i], lower_bound[i])
        
-        
+        result_pair = (0, 0, 0)
+        add_flag = 0
         for turn in range(11):
             choose = []
             rate = (int)(0.1 * turn * n)
             for i in range(n):
-                if(select[i] >= new_select[rate]):
+                if(input.select[i] >= new_select[rate]):
                     choose.append(1)
                 else:
                     choose.append(0)
             #print(0.1 * turn, sum(choose) / n)
-            flag, sol, obj = Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, time_limit, obj_type, now_sol, choose, lower_bound, upper_bound, value_type)
+            flag, sol, obj, gap = Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, time_limit, obj_type, now_sol, choose, lower_bound, upper_bound, value_type)
             if(flag == 1):
                 add_flag = 1
-                result.append(obj)
+                result_pair = (sol, obj, gap)
                 break
 
-        
-        
-        
+        if add_flag == 0:
+            sn = ""
+            for _ in self.sequence_name:
+                sn += _ + "_"
+            des = f'./logs/work/{self.taskname}/{sn}/result.txt'
+            log("ERROR", des)
+            log("MODIFY INFEASIBLE", des)
+            raise INFEASIBLEERROR("Modify infeasible")
         
         self.end()
-        return 
-        
-
-    
+        cansol = {}
+        for i in range(n):
+            cansol[num_to_value[i]] = result_pair[0][i]
+        return Cansol2S(result_pair[1], cansol, result_pair[2])
         
         
 class Default(Modify): # build a new problem based on the prediction

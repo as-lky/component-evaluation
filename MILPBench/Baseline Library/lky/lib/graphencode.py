@@ -36,12 +36,11 @@ class Bipartite(Graphencode):
         
         self.begin()
         
-        constraint_features, edge_indices, edge_features, variable_features = get_a_new2(self.instance)
+        constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value = get_a_new2(self.instance)
 
         self.end()
         
         return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features)
-        
         
         
 class BipartiteR(Graphencode):
@@ -53,12 +52,12 @@ class BipartiteR(Graphencode):
         
         self.begin()
         
-        constraint_features, edge_indices, edge_features, variable_features = get_a_new2(self.instance, random_feature=True)
+        constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value = get_a_new2(self.instance, random_feature=True)
 
         self.end()
         
         return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features)
-
+        
 
 
 class Tripartite(Graphencode):

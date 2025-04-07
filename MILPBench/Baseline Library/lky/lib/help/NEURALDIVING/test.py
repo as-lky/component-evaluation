@@ -107,11 +107,11 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                 else:
                     new_sol.append((int)(x[site_to_new[i]].X))
             
-        return 1, new_sol, model.ObjVal
+        return 1, new_sol, model.ObjVal, model.MIPGap
     except:
         #model.computeIIS()
         #model.write("abc.ilp")
-        return -1, -1, -1
+        return -1, -1, -1, -1
 
 class BipartiteNodeData(torch_geometric.data.Data):
     """

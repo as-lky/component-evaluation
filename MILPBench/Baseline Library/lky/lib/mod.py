@@ -1,3 +1,5 @@
+class INFEASIBLEERROR(Exception):
+    pass
 class Component:
     def __init__(self, device, taskname, instance, sequence_name):
         self.device = device
@@ -30,6 +32,7 @@ class Graphencode2Predict(LayerConvey): # TODO : no generalization
         self.edge_indices = edge_indices
         self.edge_features = edge_features
         self.variable_features = variable_features
+        
         
 class Predict2Modify(LayerConvey):
     def __init__(self, b_vars, scores):
