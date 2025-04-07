@@ -1,4 +1,6 @@
 import os
+
+from torch import instance_norm
 from .mod import Component, Preprocess2Graphencode
 from typing import Type
 
@@ -10,6 +12,8 @@ class Preprocess(Component): # no usage for now
         
         print('Preprocess Component is working ...')
         
+        instance_name = os.path.basename(self.instance)
+        
   #      sn = str(self.sequence_name)
         sn = ""
         for _ in self.sequence_name:
@@ -20,8 +24,10 @@ class Preprocess(Component): # no usage for now
             os.mkdir(f'./logs/work')
         if not os.path.isdir(f'./logs/work/{self.taskname}'):
             os.mkdir(f'./logs/work/{self.taskname}')
-        if not os.path.isdir(f'./logs/work/{self.taskname}/{sn}/'):
-            os.mkdir(f'./logs/work/{self.taskname}/{sn}/')
+        if not os.path.isdir(f'./logs/work/{self.taskname}/{instance_name}'):
+            os.mkdir(f'./logs/work/{self.taskname}/{instance_name}')
+        if not os.path.isdir(f'./logs/work/{self.taskname}/{instance_name}/{sn}'):
+            os.mkdir(f'./logs/work/{self.taskname}/{instance_name}/{sn}')
             
         print('Preprocess Component is done.')
         

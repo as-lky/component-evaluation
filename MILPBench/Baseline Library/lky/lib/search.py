@@ -367,7 +367,7 @@ class Gurobi(Search): # solver
     
         self.end()
         
-        return model.MIPGap, model.ObjVal
+        return model.MIPGap, model.ObjVal, model.ModelSense
         
 
 class ACP(Search): # solver

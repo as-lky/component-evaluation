@@ -2,6 +2,7 @@ import torch
 import os
 import argparse
 import time
+import json
 from lib.mod import Init2Preprocess
 from lib.preprocess import Preprocess
 from lib.graphencode import Graphencode
@@ -47,17 +48,26 @@ if __name__ == "__main__":
     now = modify_component.work(now)
     now = search_component.work(now)
 
-    # now : gap, value
+    # now : gap, obj, type
+    gap = now[0]
+    obj = now[1]
+    type = -22222
+    if len(now) == 3:
+        type = now[2]
+    
     end_time = time.time()
     
     sn = ""
     for _ in sequence_name:
         sn += _ + "_"
-    des = f'./logs/work/{args.taskname}/{sn}/result.txt'
+    des = f'./logs/work/{args.taskname}/{instance_name}/{sn}/result.txt'
+
+    result = {}
+    result['gap'] = f"{gap * 100:0.4f}"
+    result['obj'] = f"{obj:0.4f}"
+    result['type'] = "" if type == -22222 else type
+
     with open(des, 'w') as f:
-        f.write(f"{gap * 100:0.4f} {end_time - start_time:0.4f}")
+        json.dump(result, f, indent=4)
+
     print("the result has been saved!")
-    
-        
-    
-    

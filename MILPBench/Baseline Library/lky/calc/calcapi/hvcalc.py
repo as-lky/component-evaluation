@@ -4,10 +4,10 @@ import argparse
 import shutil
 
 parser = argparse.ArgumentParser(description="receive input to be calculated from higher level")
-parser.add_argument("--instance_path", required=True, type=str, help="the input path")
+parser.add_argument("--input_path", required=True, type=str, help="the input path")
 args = parser.parse_args()
 
-input_path = args.instance_path
+input_path = args.input_path
 
 if os.path.exists('calc/hbda/build/nonincremental/tmp.txt'):
     os.remove('calc/hbda/build/nonincremental/tmp.txt')
