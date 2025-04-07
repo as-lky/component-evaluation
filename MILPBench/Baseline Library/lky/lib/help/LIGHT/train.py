@@ -2,12 +2,14 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import re
 import glob
 import time
 import pickle
 import random
 import argparse
 import numpy as np
+import gurobipy as gp
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -41,10 +43,127 @@ class Focal_Loss(nn.Module):
         one[range(labels.size(0)), labels] = 1
         return one
 
+
+
+def get_a_new2(instance, random_feature = False):
+    model = gp.read(instance)
+    value_to_num = {}
+    num_to_value = {}
+    value_to_type = {}
+    value_num = 0
+    #N represents the number of decision variables
+    #M represents the number of constraints
+    #K [i] represents the number of decision variables in the i-th constraint
+    #Site [i] [j] represents which decision variable is the jth decision variable of the i-th constraint
+    #Value [i] [j] represents the coefficient of the jth decision variable of the i-th constraint
+    #Constraint [i] represents the number to the right of the i-th constraint
+    #Constrict_type [i] represents the type of the i-th constraint, 1 represents<, 2 represents>, and 3 represents=
+    #Coefficient [i] represents the coefficient of the i-th decision variable in the objective function
+    n = model.NumVars
+    m = model.NumConstrs
+    k = []
+    site = []
+    value = []
+    constraint = []
+    constraint_type = []
+    for cnstr in model.getConstrs():
+        if(cnstr.Sense == '<'):
+            constraint_type.append(1)
+        elif(cnstr.Sense == '>'):
+            constraint_type.append(2) 
+        else:
+            constraint_type.append(3) 
+        
+        constraint.append(cnstr.RHS)
+
+
+        now_site = []
+        now_value = []
+        row = model.getRow(cnstr)
+        k.append(row.size())
+        for i in range(row.size()):
+            if(row.getVar(i).VarName not in value_to_num.keys()):
+                value_to_num[row.getVar(i).VarName] = value_num
+                num_to_value[value_num] = row.getVar(i).VarName
+                value_num += 1
+            now_site.append(value_to_num[row.getVar(i).VarName])
+            now_value.append(row.getCoeff(i))
+        site.append(now_site)
+        value.append(now_value)
+
+    coefficient = {}
+    lower_bound = {}
+    upper_bound = {}
+    value_type = {}
+    for val in model.getVars():
+        if(val.VarName not in value_to_num.keys()):
+            value_to_num[val.VarName] = value_num
+            num_to_value[value_num] = val.VarName
+            value_num += 1
+        coefficient[value_to_num[val.VarName]] = val.Obj
+        lower_bound[value_to_num[val.VarName]] = val.LB
+        upper_bound[value_to_num[val.VarName]] = val.UB
+        value_type[value_to_num[val.VarName]] = val.Vtype
+
+    #1 minimize, -1 maximize
+    obj_type = model.ModelSense
+    
+    
+    variable_features = []
+    constraint_features = []
+    edge_indices = [[], []] 
+    edge_features = []
+
+    for i in range(n):
+        now_variable_features = []
+        now_variable_features.append(coefficient[i])
+        if(lower_bound[i] == float("-inf")):
+            now_variable_features.append(0)
+            now_variable_features.append(0)
+        else:
+            now_variable_features.append(1)
+            now_variable_features.append(lower_bound[i])
+        if(upper_bound[i] == float("inf")):
+            now_variable_features.append(0)
+            now_variable_features.append(0)
+        else:
+            now_variable_features.append(1)
+            now_variable_features.append(upper_bound[i])
+        if(value_type[i] == 'C'):
+            now_variable_features.append(0)
+        else:
+            now_variable_features.append(1)
+        if random_feature:
+            now_variable_features.append(random.random())
+        variable_features.append(now_variable_features)
+    
+    for i in range(m):
+        now_constraint_features = []
+        now_constraint_features.append(constraint[i])
+        now_constraint_features.append(constraint_type[i])
+        if random_feature:
+            now_constraint_features.append(random.random())
+        constraint_features.append(now_constraint_features)
+    
+    for i in range(m):
+        for j in range(k[i]):
+            edge_indices[0].append(i)
+            edge_indices[1].append(site[i][j])
+            edge_features.append([value[i][j]])
+
+    return constraint_features, edge_indices, edge_features, variable_features, num_to_value, n
+
+
 # Training settings
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-cuda', action='store_true', default=False, help='Disables CUDA training.')
 parser.add_argument('--fastmode', action='store_true', default=False, help='Validate during training pass.')
+
+parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")
+parser.add_argument("--model_save_dir", type=str, help="the model output directory")
+parser.add_argument("--log_dir", type=str, help="the train tmp file restore") 
+parser.add_argument("--random_feature", action='store_true', help="whether use random feature or not")
+    
 parser.add_argument('--seed', type=int, default=16, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=30, help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=1e-2, help='Initial learning rate.')
@@ -76,11 +195,46 @@ data_edge_num_A = []
 data_edge_B = []
 data_edge_num_B = []
 data_idx_train = []
-for now_data in range(data_num):
-    if not os.path.exists('./data/pair' + str(now_data) + '.pickle'):
-        print("No problem file!")
 
-    with open('./data/pair' + str(now_data) + '.pickle', "rb") as f:
+def c(a):
+    tmp = os.path.basename(a)
+    tmp = re.match(r".*_([0-9]+)", tmp)
+    tmp = tmp.group(1)
+    return int(tmp) <= 9
+
+
+log_dir = args.log_dir
+train_data_dir = args.train_data_dir
+random_feature = args.random_feature
+model_save_dir = args.model_save_dir
+
+train_data_path = train_data_dir
+# load samples from data_path and divide them
+DIR_BG = train_data_path + 'LP'
+DIR_SOL = train_data_path + 'Pickle'
+
+sample_names = os.listdir(DIR_BG)
+sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if not c(name)]
+
+for ____ in sample_files:
+    _ = ____[0]
+    solution_path = ____[1]
+    
+    instance_name = os.path.basename(_)
+    instance_name = re.match(r"(.*_[0-9]+)\.lp", instance_name)
+    instance_name = instance_name.group(1)
+    pk = os.path.join(log_dir, instance_name) + '.pickle'
+    if not os.path.exists(pk):
+        constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2(_, random_feature)
+        with open(solution_path, "rb") as f:
+            solution = pickle.load(f)[0]
+        sol = []
+        for i in range(n):
+            sol.append(solution[num_to_value[i]])
+        with open(pk, "wb") as f:
+            pickle.dump([variable_features, constraint_features, edge_indices, edge_features, sol], f)
+
+    with open(pk, "rb") as f:
         problem = pickle.load(f)
 
     variable_features = problem[0]
@@ -88,8 +242,6 @@ for now_data in range(data_num):
     edge_indices = problem[2]
     edge_feature = problem[3]
     optimal_solution = problem[4]
-    #print(optimal_solution)
-    #edge, features, labels, idx_train = load_data()
 
     #change
     n = len(variable_features)
@@ -189,7 +341,7 @@ def train(epoch, num):
     t = time.time()
 
     output, data_edge_features[num] = model(data_features[num], data_edge_A[num], data_edge_B[num], data_edge_features[num].detach())
-    print(data_solution[num][idx_train])
+#    print(data_solution[num][idx_train])
 
     lf = Focal_Loss(torch.as_tensor(data_labels[num]))
     loss_train = lf(output[idx_train], data_solution[num][idx_train])
@@ -214,8 +366,9 @@ for epoch in range(args.epochs):
     print('Epoch: {:04d}'.format(epoch+1),
           'loss_train: {:.4f}'.format(now_loss))
 
-    torch.save(model.state_dict(), '{}.pkl'.format(epoch))
+#    torch.save(model.state_dict(), '{}.pkl'.format(epoch))
     if loss_values[-1] < best:
+        torch.save(model.state_dict(), model_save_dir + 'model_best.pkl')
         best = loss_values[-1]
         best_epoch = epoch
         bad_counter = 0
@@ -225,24 +378,24 @@ for epoch in range(args.epochs):
     if bad_counter == args.patience:  # Stop if there's no improvement for several consecutive rounds
         break
 
-    files = glob.glob('*.pkl')
-    for file in files:
-        epoch_nb = int(file.split('.')[0])
-        if epoch_nb < best_epoch:
-            os.remove(file)
+#    files = glob.glob('*.pkl')
+#    for file in files:
+#        epoch_nb = int(file.split('.')[0])
+#        if epoch_nb < best_epoch:
+#            os.remove(file)
 
-files = glob.glob('*.pkl')
-for file in files:
-    epoch_nb = int(file.split('.')[0])
-    if epoch_nb > best_epoch:
-        os.remove(file)
+#files = glob.glob('*.pkl')
+#for file in files:
+#    epoch_nb = int(file.split('.')[0])
+#    if epoch_nb > best_epoch:
+#        os.remove(file)
 
 print("Optimization Finished!")
 print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
 # Restore best model
 print('Loading {}th epoch'.format(best_epoch))
-model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
+#model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
 
 print(loss_values)
 

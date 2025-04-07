@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 def c(a):
     tmp = os.path.basename(a)
-    tmp = re.match(r"_([0-9]+)", tmp)
+    tmp = re.match(r".*_([0-9]+)", tmp)
     tmp = tmp.group(1)
     return int(tmp) <= 9
 

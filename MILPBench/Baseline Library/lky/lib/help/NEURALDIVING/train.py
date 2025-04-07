@@ -297,6 +297,13 @@ def get_a_new2(instance, random_feature = False):
 
     return constraint_features, edge_indices, edge_features, variable_features, num_to_value, n
 
+
+def c(a):
+    tmp = os.path.basename(a)
+    tmp = re.match(r".*_([0-9]+)", tmp)
+    tmp = tmp.group(1)
+    return int(tmp) <= 9
+
 def train(
     train_data_dir: str,
     model_save_dir: Union[str, Path],
@@ -325,7 +332,7 @@ def train(
     DIR_SOL = train_data_path + 'Pickle'
 
     sample_names = os.listdir(DIR_BG)
-    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names]
+    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if not c(name)]
 
     train_files = sample_files[: int(0.9 * len(sample_files))]
     valid_files = sample_files[int(0.9 * len(sample_files)) :]
