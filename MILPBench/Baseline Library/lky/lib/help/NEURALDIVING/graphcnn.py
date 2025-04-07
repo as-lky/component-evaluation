@@ -62,12 +62,12 @@ class BipartiteGraphConvolution(torch_geometric.nn.MessagePassing):
 
 
 class GNNPolicy(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, random_feature=False):
         super().__init__()
         emb_size = 64
-        cons_nfeats = 3
+        cons_nfeats = 3 if random_feature else 2
         edge_nfeats = 1
-        var_nfeats = 7
+        var_nfeats = 7 if random_feature else 6
 
         # CONSTRAINT EMBEDDING
         self.cons_embedding = torch.nn.Sequential(

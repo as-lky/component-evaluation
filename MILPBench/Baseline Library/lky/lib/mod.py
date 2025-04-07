@@ -25,15 +25,11 @@ class Preprocess2Graphencode(LayerConvey):
         ...
         
 class Graphencode2Predict(LayerConvey): # TODO : no generalization
-    def __init__(self, constraint_features, edge_indices, edge_features, variable_features, v_map, v_nodes, c_nodes, b_vars):
-        self.constraint_features = constraint_features 
+    def __init__(self, constraint_features, edge_indices, edge_features, variable_features):
+        self.constraint_features = constraint_features
         self.edge_indices = edge_indices
         self.edge_features = edge_features
         self.variable_features = variable_features
-        self.v_map = v_map
-        self.v_nodes = v_nodes
-        self.c_nodes = c_nodes
-        self.b_vars = b_vars
         
 class Predict2Modify(LayerConvey):
     def __init__(self, b_vars, scores):
@@ -45,8 +41,9 @@ class Modify2Search(LayerConvey):
     ... # nothing to do
         
 class Cantsol(Predict2Modify):
-    def __init__(self, scores): # a sol which can't be used
-        self.scores = scores
+    def __init__(self, logits, select): # a sol which can't be used
+        self.logits = logits
+        self.select = select
         
 class Cansol2M(Predict2Modify):
     def __init__(self, objval, cansol, gap): # a sol which can be used

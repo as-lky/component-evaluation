@@ -2,10 +2,13 @@ import argparse
 import pickle
 from pathlib import Path
 from typing import Union
+import re
 import os
 import torch
 import torch.nn.functional as F
 import torch_geometric
+import gurobipy as gp
+import random
 from pytorch_metric_learning import losses
 
 from graphcnn import GNNPolicy
@@ -54,9 +57,11 @@ class GraphDataset(torch_geometric.data.Dataset):
     It can be used in turn by the data loaders provided by pytorch geometric.
     """
 
-    def __init__(self, sample_files):
+    def __init__(self, sample_files, log_dir, random_feature):
         super().__init__(root=None, transform=None, pre_transform=None)
         self.sample_files = sample_files
+        self.log_dir = log_dir
+        self.random_feature = random_feature
 
     def len(self):
         return len(self.sample_files)
@@ -65,9 +70,26 @@ class GraphDataset(torch_geometric.data.Dataset):
         """
         This method loads a node bipartite graph observation as saved on the disk during data collection.
         """
-        with open(self.sample_files[index], "rb") as f:
-            [variable_features, constraint_features, edge_indices, edge_features, solution] = pickle.load(f)
-
+        instance, solution_path = self.sample_files[index]
+        instance_name = os.path.basename(instance)
+        instance_name = re.match(r"(.*_[0-9]+)\.lp", instance_name)
+        instance_name = instance_name.group(1)
+        pk = os.path.join(self.log_dir, instance_name) + '.pickle'
+        if os.path.exists(pk):
+            with open(pk, "rb") as f:
+                [variable_features, constraint_features, edge_indices, edge_features, solution] = pickle.load(f)    
+        else:
+            variable_features, constraint_features, edge_indices, edge_features, num_to_value, n = get_a_new2(instance, self.random_feature, True)
+            with open(solution_path, "rb") as f:
+                solution = pickle.load(f)[0]
+            sol = []
+            for i in range(n):
+                sol.append(solution[num_to_value[i]])
+                
+            with open(pk, "wb") as f:
+                pickle.dump([variable_features, constraint_features, edge_indices, edge_features, sol], f)
+            solution = sol
+                
         graph = BipartiteNodeData(
             torch.FloatTensor(constraint_features),
             torch.LongTensor(edge_indices),
@@ -105,6 +127,7 @@ def process(policy, data_loader, device, optimizer=None):
     """
     mean_loss = 0
     mean_acc = 0
+    print(data_loader)
 
     n_samples_processed = 0
     with torch.set_grad_enabled(optimizer is not None):
@@ -166,9 +189,122 @@ def process(policy, data_loader, device, optimizer=None):
     # mean_acc /= n_samples_processed
     return mean_loss
 
+def get_a_new2(instance, random_feature = False, help = False):
+    model = gp.read(instance)
+    value_to_num = {}
+    num_to_value = {}
+    value_to_type = {}
+    value_num = 0
+    #N represents the number of decision variables
+    #M represents the number of constraints
+    #K [i] represents the number of decision variables in the i-th constraint
+    #Site [i] [j] represents which decision variable is the jth decision variable of the i-th constraint
+    #Value [i] [j] represents the coefficient of the jth decision variable of the i-th constraint
+    #Constraint [i] represents the number to the right of the i-th constraint
+    #Constrict_type [i] represents the type of the i-th constraint, 1 represents<, 2 represents>, and 3 represents=
+    #Coefficient [i] represents the coefficient of the i-th decision variable in the objective function
+    n = model.NumVars
+    m = model.NumConstrs
+    k = []
+    site = []
+    value = []
+    constraint = []
+    constraint_type = []
+    for cnstr in model.getConstrs():
+        if(cnstr.Sense == '<'):
+            constraint_type.append(1)
+        elif(cnstr.Sense == '>'):
+            constraint_type.append(2) 
+        else:
+            constraint_type.append(3) 
+        
+        constraint.append(cnstr.RHS)
+
+
+        now_site = []
+        now_value = []
+        row = model.getRow(cnstr)
+        k.append(row.size())
+        for i in range(row.size()):
+            if(row.getVar(i).VarName not in value_to_num.keys()):
+                value_to_num[row.getVar(i).VarName] = value_num
+                num_to_value[value_num] = row.getVar(i).VarName
+                value_num += 1
+            now_site.append(value_to_num[row.getVar(i).VarName])
+            now_value.append(row.getCoeff(i))
+        site.append(now_site)
+        value.append(now_value)
+
+    coefficient = {}
+    lower_bound = {}
+    upper_bound = {}
+    value_type = {}
+    for val in model.getVars():
+        if(val.VarName not in value_to_num.keys()):
+            value_to_num[val.VarName] = value_num
+            num_to_value[value_num] = val.VarName
+            value_num += 1
+        coefficient[value_to_num[val.VarName]] = val.Obj
+        lower_bound[value_to_num[val.VarName]] = val.LB
+        upper_bound[value_to_num[val.VarName]] = val.UB
+        value_type[value_to_num[val.VarName]] = val.Vtype
+
+    #1 minimize, -1 maximize
+    obj_type = model.ModelSense
+    
+    
+    variable_features = []
+    constraint_features = []
+    edge_indices = [[], []] 
+    edge_features = []
+
+    for i in range(n):
+        now_variable_features = []
+        now_variable_features.append(coefficient[i])
+        if(lower_bound[i] == float("-inf")):
+            now_variable_features.append(0)
+            now_variable_features.append(0)
+        else:
+            now_variable_features.append(1)
+            now_variable_features.append(lower_bound[i])
+        if(upper_bound[i] == float("inf")):
+            now_variable_features.append(0)
+            now_variable_features.append(0)
+        else:
+            now_variable_features.append(1)
+            now_variable_features.append(upper_bound[i])
+        if(value_type[i] == 'C'):
+            now_variable_features.append(0)
+        else:
+            now_variable_features.append(1)
+        if random_feature:
+            now_variable_features.append(random.random())
+        variable_features.append(now_variable_features)
+    
+    for i in range(m):
+        now_constraint_features = []
+        now_constraint_features.append(constraint[i])
+        now_constraint_features.append(constraint_type[i])
+        if random_feature:
+            now_constraint_features.append(random.random())
+        constraint_features.append(now_constraint_features)
+    
+    for i in range(m):
+        for j in range(k[i]):
+            edge_indices[0].append(i)
+            edge_indices[1].append(site[i][j])
+            edge_features.append([value[i][j]])
+
+    if not help:
+        return constraint_features, edge_indices, edge_features, variable_features
+    else:
+        return constraint_features, edge_indices, edge_features, variable_features, num_to_value, n
+
 def train(
-    path: str,
-    model_save_path: Union[str, Path],
+    train_data_dir: str,
+    model_save_dir: Union[str, Path],
+    log_dir: str,
+    random_feature: bool = False,
     batch_size: int = 1,
     learning_rate: float = 1e-3,
     num_epochs: int = 20,
@@ -186,19 +322,23 @@ def train(
         device: Device to use for training.
     """
     #训练路径
-    train_data_path = f'instances/{path}/train'
+    train_data_path = train_data_dir
     # load samples from data_path and divide them
-    sample_files = [str(path) for path in Path(train_data_path).glob("pair*.pickle")]
-    print(sample_files)
+    DIR_BG = train_data_path + 'LP'
+    DIR_SOL = train_data_path + 'Pickle'
+
+    sample_names = os.listdir(DIR_BG)
+    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names]
+
     train_files = sample_files[: int(0.9 * len(sample_files))]
     valid_files = sample_files[int(0.9 * len(sample_files)) :]
 
-    train_data = GraphDataset(train_files)
+    train_data = GraphDataset(train_files, log_dir, random_feature)
     train_loader = torch_geometric.loader.DataLoader(train_data, batch_size=batch_size, shuffle = False)
-    valid_data = GraphDataset(valid_files)
+    valid_data = GraphDataset(valid_files, log_dir, random_feature)
     valid_loader = torch_geometric.loader.DataLoader(valid_data, batch_size=batch_size, shuffle = False)
 
-    policy = GNNPolicy().to(device)
+    policy = GNNPolicy(random_feature=random_feature).to(device)
 
     optimizer = torch.optim.Adam(policy.parameters(), lr=learning_rate)
     for epoch in range(num_epochs):
@@ -206,7 +346,8 @@ def train(
         #valid_loss = process(policy, valid_loader, device, None)
         valid_loss = 0
         print(f"Epoch {epoch+1}: Train Loss: {train_loss:0.3f}, Valid Loss: {valid_loss:0.3f}")
-    model_save_path = f'{model_save_path}/{path}_trained.pkl'
+    
+    model_save_path = f'{model_save_dir}/model_best.pkl'
     torch.save(policy.state_dict(), model_save_path)
     print(f"Trained parameters saved to {model_save_path}")
 
@@ -215,8 +356,10 @@ def parse_args():
     This function parses the command line arguments.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", type=str, default="fc.data", help="Path for train Data.")
-    parser.add_argument("--model_save_path", type=str, default="trained_model", help="Path to save the model.")
+    parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")
+    parser.add_argument("--model_save_dir", type=str, help="the model output directory")
+    parser.add_argument("--log_dir", type=str, help="the train tmp file restore") 
+    parser.add_argument("--random_feature", action='store_true', help="whether use random feature or not")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size for training.")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate for the optimizer.")
     parser.add_argument("--num_epochs", type=int, default=30, help="Number of epochs to train for.")

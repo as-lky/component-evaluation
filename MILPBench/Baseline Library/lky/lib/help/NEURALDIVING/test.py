@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import torch_geometric
 from pytorch_metric_learning import losses
 
-from graphcnn import GNNPolicy
+from .graphcnn import GNNPolicy
 
 __all__ = ["train"]
 

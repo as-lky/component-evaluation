@@ -2,8 +2,7 @@ import numpy as np
 import torch 
 from typing import Self, Type, cast
 from .mod import Component, Preprocess2Graphencode, Graphencode2Predict
-from .help.GCN.helper import get_a_new2
-from .help.GCN.GCN import postion_get
+from .help.NEURALDIVING.read_lp import get_a_new2
 
 class Graphencode(Component):
     def __new__(cls, component, *args, **kwargs):
@@ -36,20 +35,12 @@ class Bipartite(Graphencode):
     def work(self) -> Graphencode2Predict:
         
         self.begin()
-        A, v_map, v_nodes, c_nodes, b_vars = get_a_new2(self.instance)
-        constraint_features = c_nodes.cpu()
-        constraint_features[torch.isnan(constraint_features)] = 1  # remove nan value
-        variable_features = v_nodes
-        if self.taskname == "IP":
-            variable_features = postion_get(variable_features, self.device) # position ? 
-        edge_indices = A._indices()
-        edge_features = A._values().unsqueeze(1)
-        edge_features = torch.ones(edge_features.shape)
+        
+        constraint_features, edge_indices, edge_features, variable_features = get_a_new2(self.instance)
 
         self.end()
         
-        return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
-            v_map, v_nodes, c_nodes, b_vars )
+        return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features)
         
         
         
@@ -61,20 +52,12 @@ class BipartiteR(Graphencode):
     def work(self) -> Graphencode2Predict:
         
         self.begin()
-        A, v_map, v_nodes, c_nodes, b_vars = get_a_new2(self.instance, random_feature=True)
-        constraint_features = c_nodes.cpu()
-        constraint_features[torch.isnan(constraint_features)] = 1  # remove nan value
-        variable_features = v_nodes
-        if self.taskname == "IP":
-            variable_features = postion_get(variable_features, self.device) # position ? 
-        edge_indices = A._indices()
-        edge_features = A._values().unsqueeze(1)
-        edge_features = torch.ones(edge_features.shape)
+        
+        constraint_features, edge_indices, edge_features, variable_features = get_a_new2(self.instance, random_feature=True)
 
         self.end()
         
-        return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
-            v_map, v_nodes, c_nodes, b_vars )
+        return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features)
 
 
 
@@ -85,24 +68,7 @@ class Tripartite(Graphencode):
         ... # tackle parameters
 
     def work(self) -> Graphencode2Predict:
-        
-        self.begin()
-        
-        A, v_map, v_nodes, c_nodes, b_vars = get_a_new2(self.instance)
-        constraint_features = c_nodes.cpu()
-        constraint_features[torch.isnan(constraint_features)] = 1  # remove nan value
-        variable_features = v_nodes
-        if self.taskname == "IP":
-            variable_features = postion_get(variable_features, self.device) # position ? 
-        edge_indices = A._indices()
-        edge_features = A._values().unsqueeze(1)
-        edge_features = torch.ones(edge_features.shape)
-
-        self.end()
-        
-        return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
-            v_map, v_nodes, c_nodes, b_vars )
-
+        ...
 
 
 class TripartiteR(Graphencode):
@@ -112,23 +78,9 @@ class TripartiteR(Graphencode):
         ... # tackle parameters
 
     def work(self) -> Graphencode2Predict:
+        ...        
         
-        self.begin()
         
-        A, v_map, v_nodes, c_nodes, b_vars = get_a_new2(self.instance, random_feature=True)
-        constraint_features = c_nodes.cpu()
-        constraint_features[torch.isnan(constraint_features)] = 1  # remove nan value
-        variable_features = v_nodes
-        if self.taskname == "IP":
-            variable_features = postion_get(variable_features, self.device) # position ? 
-        edge_indices = A._indices()
-        edge_features = A._values().unsqueeze(1)
-        edge_features = torch.ones(edge_features.shape)
-
-        self.end()
-        
-        return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features,
-            v_map, v_nodes, c_nodes, b_vars )
 
 
 class Default(Graphencode):
