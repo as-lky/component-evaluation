@@ -3,6 +3,7 @@ import os
 import argparse
 import time
 import json
+import re
 from lib.mod import Init2Preprocess
 from lib.preprocess import Preprocess
 from lib.graphencode import Graphencode
@@ -60,11 +61,13 @@ if __name__ == "__main__":
     sn = ""
     for _ in sequence_name:
         sn += _ + "_"
-    des = f'./logs/work/{args.taskname}/{instance_name}/{sn}/result.txt'
+    tmp = re.match(r"(.*)\.lp", instance_name)
+    tmp = tmp.group(1)
+    des = f'./logs/work/{args.taskname}/{sn}/{tmp}_result.txt'
 
     result = {}
-    result['gap'] = f"{gap * 100:0.4f}"
-    result['obj'] = f"{obj:0.4f}"
+    result['gap'] = round(gap * 100, 4)
+    result['obj'] = round(obj, 4)
     result['type'] = "" if type == -22222 else type
 
     with open(des, 'w') as f:

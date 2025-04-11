@@ -1,5 +1,5 @@
 import os
-
+import re
 from torch import instance_norm
 from .mod import Component, Preprocess2Graphencode
 from typing import Type
@@ -24,11 +24,9 @@ class Preprocess(Component): # no usage for now
             os.mkdir(f'./logs/work')
         if not os.path.isdir(f'./logs/work/{self.taskname}'):
             os.mkdir(f'./logs/work/{self.taskname}')
-        if not os.path.isdir(f'./logs/work/{self.taskname}/{instance_name}'):
-            os.mkdir(f'./logs/work/{self.taskname}/{instance_name}')
-        if not os.path.isdir(f'./logs/work/{self.taskname}/{instance_name}/{sn}'):
-            os.mkdir(f'./logs/work/{self.taskname}/{instance_name}/{sn}')
-            
+        if not os.path.isdir(f'./logs/work/{self.taskname}/{sn}'):
+            os.mkdir(f'./logs/work/{self.taskname}/{sn}')
+        
         print('Preprocess Component is done.')
         
         return Preprocess2Graphencode()
