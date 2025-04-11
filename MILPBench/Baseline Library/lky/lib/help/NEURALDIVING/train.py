@@ -11,7 +11,7 @@ import gurobipy as gp
 import random
 from pytorch_metric_learning import losses
 
-from .graphcnn import GNNPolicy
+from graphcnn import GNNPolicy
 
 __all__ = ["train"]
 
@@ -366,7 +366,7 @@ def parse_args():
     parser.add_argument("--random_feature", action='store_true', help="whether use random feature or not")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size for training.")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate for the optimizer.")
-    parser.add_argument("--num_epochs", type=int, default=30, help="Number of epochs to train for.")
+    parser.add_argument("--num_epochs", type=int, default=3, help="Number of epochs to train for.")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to use for training.")
     return parser.parse_args()
 

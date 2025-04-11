@@ -72,7 +72,8 @@ if __name__ == "__main__":
     result['gap'] = round(gap * 100, 4)
     result['obj'] = round(obj, 4)
     result['type'] = "" if type == -22222 else type
-    result['result_list'] = [ (round(result_list_obj_time[i][0], 4), round(result_list_obj_time[i][1], 4)) for i in range(len(result_list_obj_time))]
+    result['result_list'] = [ (float(round(result_list_obj_time[i][0], 8)), float(round(result_list_obj_time[i][1], 8))) for i in range(len(result_list_obj_time))]
+    print(result)
 
     with open(des, 'w') as f:
         json.dump(result, f, indent=4)

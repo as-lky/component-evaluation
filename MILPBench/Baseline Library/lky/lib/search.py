@@ -93,7 +93,7 @@ class LIH(Search):
         
         now_sol, now_time, now_gap = greedy_one_LIH(now_instance, time_limit)
 
-        for _ in range(now_sol):
+        for _ in range(len(now_sol)):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
 
         self.end()
@@ -151,7 +151,7 @@ class MIH(Search):
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
         now_sol, now_time, now_gap = greedy_one_MIH(now_instance, time_limit)
 
-        for _ in range(now_sol):
+        for _ in range(len(now_sol)):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
 
         self.end()
@@ -302,7 +302,7 @@ class LNS(Search):
         for i in range(len(ansx)):
             new_ansx[num_to_value[i]] = ansx[i]
 
-        for _ in range(now_sol):
+        for _ in range(len(now_sol)):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
 
         self.end()
@@ -363,7 +363,7 @@ class NALNS(Search):
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
         now_sol, now_time, now_gap = greedy_one_NALNS(now_instance, time_limit)
 
-        for _ in range(now_sol):
+        for _ in range(len(now_sol)):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
 
         self.end()
@@ -615,7 +615,7 @@ class ACP(Search): # solver
         for i in range(len(ansx)):
             new_ansx[num_to_value[i]] = ansx[i]
 
-        for _ in range(now_sol):
+        for _ in range(len(now_sol)):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
 
         self.end()

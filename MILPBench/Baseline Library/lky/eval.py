@@ -11,6 +11,7 @@ import math
 from scipy.interpolate import PchipInterpolator
 from scipy.optimize import root_scalar
 
+# python eval.py --taskname IS --instance_path .\Dataset\IS_easy_instance\IS_easy_instance\LP --train_data_dir .\Dataset\IS_easy_instance\IS_easy_instance\
 
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
 parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
@@ -31,7 +32,7 @@ def work_gurobi(instance):
     tmp = tmp.group(1)
    
 
-    subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
+    subprocess.run(["python", "main.py", "--device", "cpu", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
     "--graphencode", "default", "--predict", "gurobi", "--predict_time_limit", "10", "--modify", "default", "--search", "gurobi"])    
     des = f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp}_result.txt'
     with open(des, 'r') as f:
@@ -46,7 +47,7 @@ instance_path = args.instance_path
 train_data_dir = args.train_data_dir
 
 grlis = ["bi", "bir", "default"]
-prelis = ["gcn", "gurobi", "scip", "cplex"]
+prelis = ["gcn", "gurobi", "scip"]
 modlis = ["sr", "nr", "np", "default"]
 sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
 instancelis = [os.path.join(instance_path, file) for file in os.listdir(instance_path) if c(file)] # 10 instances
@@ -69,16 +70,16 @@ def calc_api(lis):
 
 def gapstart_c(time_list, val_list, lobj): # 初始解gap
     val = val_list[0]
-    gap = abs(val - lobj) / val 
+    gap = abs(val - lobj) / val if val != 0 else 1000  
     return min(gap / 1000, 1) # 越小越好
 
 def gapend_c(time_list, val_list, lobj): # 最终gap
     val = val_list[-1]
-    gap = abs(val - lobj) / val 
+    gap = abs(val - lobj) / val if val != 0 else 10
     return min(gap / 10, 1) # 越小越好
 
 def ir_c(time_list, val_list, lobj): # 改进比率
-    ir = abs(val_list[-1] - val_list[0]) / val_list[0]
+    ir = abs(val_list[-1] - val_list[0]) / val_list[0] if val_list[0] != 0 else 1000000
     if ir < 0.01:
         ir = 0.01
     if ir > 100000:
@@ -97,15 +98,20 @@ def nr_c(time_list, val_list, lobj): # 求解的有效率
     return 1 - nr # 越小越好
 
 def stime_c(time_list, val_list, lobj): # 求解的预估收敛时间
-    pchip = PchipInterpolator(time_list, val_list)    
-    def func(x):
-        return pchip(x) - lobj
-    stime = root_scalar(func, bracket=[0.1, 1000000])
-    if stime.converged:
-        stime = math.log(stime.root) # -1 到 6
-        return (stime + 1) / 7 # 越小越好
-    else:
-        return 1 # 越小越好
+    if len(val_list) < 2:
+        return 1
+    vv = val_list
+    for i in range(1, len(vv)):
+        vv[i] = max(vv[i], vv[i - 1] + 1e-8)
+        
+    pchip = PchipInterpolator(val_list, time_list)    
+    stime = pchip(lobj)
+    if stime > 1e6:
+        stime = 1e6
+    if stime < 0.1:
+        stime = 0.1
+    stime = math.log(stime) # -1 到 6
+    return (stime + 1) / 7 # 越小越好
 
 #TODO:check求解的稳定性
 
@@ -154,7 +160,7 @@ for instance in instancelis:
                             continue
                     we = f"{gr}_{pre}_{mod}_{sea}_"
                     
-                    subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
+                    subprocess.run(["python", "main.py", "--device", "cpu", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
                         "--graphencode", f"{gr}", "--predict", f"{pre}", "--predict_time_limit", "15", "--modify", f"{mod}", "--search", f"{sea}", "--search_time_limit", "15"])  # TODO: add error check  
                     
                     instance_name = os.path.basename(instance)
@@ -173,7 +179,7 @@ for instance in instancelis:
     for key, value in now_score.items():
         LIS.remove(value)
         sum = calc_api(LIS)
-        scores[we] = scores.get(we, 0) + SUM - sum
+        scores[key] = scores.get(key, 0) + SUM - sum
         LIS.append(value)
 
 for key, value in scores.items():
