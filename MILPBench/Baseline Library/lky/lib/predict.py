@@ -12,6 +12,9 @@ import random
 from typing import Type, cast, Self
 from .mod import Component, Graphencode2Predict, Predict2Modify, Cantsol, Cansol2M
 from .help.NEURALDIVING.test import GraphDataset
+from .help.NEURALDIVING.help import get_a_new2 as get_a_new2_gcn
+from .help.LIGHT.help import get_a_new2 as get_a_new2_gat
+
 from .help.LIGHT.EGAT_models import SpGAT
 import torch_geometric
 
@@ -40,7 +43,7 @@ class Predict(Component):
 
     def work(self, input: Graphencode2Predict) -> Predict2Modify:...
 
-class Gurobi(Predict):
+class Gurobi(Predict): # TODO: 找到解立刻停止
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
@@ -280,6 +283,12 @@ class GCN(Predict):
         instance_name = re.match(r"(.*_[0-9]+)\.lp", instance_name)
         instance_name = instance_name.group(1)
         pk = os.path.join(W, instance_name) + '.pickle'
+    
+        if not os.path.exists(pk):
+            constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2_gcn(self.instance, random_feature=True if self.sequence_name[0][-1] == 'r' else False)            
+            sol = []
+            with open(pk, "wb") as f:
+                pickle.dump([variable_features, constraint_features, edge_indices, edge_features, sol], f)
         
         file = [pk]
         data = GraphDataset(file)
@@ -526,10 +535,10 @@ class GAT(Predict):
             
             if self.sequence_name[0][-1] == 'r':
                 subprocess.run(["python", "lib/help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
-                                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--random_feature"])    
+                                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--random_feature", "--no-cuda"])     #TODO: remove no-cuda
             else:
                 subprocess.run(["python", "lib/help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
-                                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}"])
+                                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--no-cuda"])
                 
             pathstr = model_path
             # train_data_dir + LP / Pickle    
@@ -539,6 +548,12 @@ class GAT(Predict):
         instance_name = instance_name.group(1)
         
         pk_feature = os.path.join(W, instance_name) + '.pickle'
+        if not os.path.exists(pk_feature):
+            constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2_gat(self.instance, random_feature=True if self.sequence_name[0][-1] == 'r' else False)
+            sol = []
+            with open(pk_feature, "wb") as f:
+                pickle.dump([variable_features, constraint_features, edge_indices, edge_features, sol], f)
+
         with open(pk_feature, 'rb') as f:
             problem = pickle.load(f)
                 

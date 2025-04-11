@@ -61,8 +61,6 @@ if __name__ == "__main__":
     if len(now) == 3:
         type = now[2]
     
-    end_time = time.time()
-    
     sn = ""
     for _ in sequence_name:
         sn += _ + "_"
@@ -74,6 +72,7 @@ if __name__ == "__main__":
     result['gap'] = round(gap * 100, 4)
     result['obj'] = round(obj, 4)
     result['type'] = "" if type == -22222 else type
+    result['result_list'] = [ (round(result_list_obj_time[i][0], 4), round(result_list_obj_time[i][1], 4)) for i in range(len(result_list_obj_time))]
 
     with open(des, 'w') as f:
         json.dump(result, f, indent=4)

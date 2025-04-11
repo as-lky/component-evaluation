@@ -1,5 +1,8 @@
+import time
+
 class INFEASIBLEERROR(Exception):
     pass
+
 class Component:
     def __init__(self, device, taskname, instance, sequence_name):
         self.device = device
@@ -8,6 +11,7 @@ class Component:
         self.sequence_name = sequence_name # sequence_name is whole components sequence name 
 
     def begin(self):
+        self.begin_time = time.time()
         print(f" {self.__class__.__bases__[0].__name__} Component {self.__class__.__name__} is working ...")
     
     def end(self):

@@ -16,7 +16,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 
-from EGAT_models import SpGAT
+from .EGAT_models import SpGAT
 
 class Focal_Loss(nn.Module):
     def __init__(self, weight, gamma=2):
@@ -176,9 +176,9 @@ parser.add_argument('--patience', type=int, default=20, help='Patience')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
-print(torch.cuda.is_available())
+#print(torch.cuda.is_available())
 
-device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #device = torch.device("cpu")
 
 random.seed(args.seed)

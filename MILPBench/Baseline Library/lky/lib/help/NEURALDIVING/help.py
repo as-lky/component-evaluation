@@ -369,8 +369,3 @@ def parse_args():
     parser.add_argument("--num_epochs", type=int, default=30, help="Number of epochs to train for.")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to use for training.")
     return parser.parse_args()
-
-
-if __name__ == "__main__":
-    args = parse_args()
-    train(**vars(args))

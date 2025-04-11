@@ -92,8 +92,14 @@ class LIH(Search):
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
         
         now_sol, now_time, now_gap = greedy_one_LIH(now_instance, time_limit)
+
+        for _ in range(now_sol):
+            result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
+
         self.end()
-        return now_gap # TODO: modify return
+ #       return now_gap # TODO: modify return
+        return 0, 0, 0 # TODO: modify return
+
  
 class MIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -144,11 +150,14 @@ class MIH(Search):
 
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
         now_sol, now_time, now_gap = greedy_one_MIH(now_instance, time_limit)
-        # print(now_sol)
-        # print(now_time)
+
+        for _ in range(now_sol):
+            result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
+
         self.end()
-        return now_gap, now_sol # TODO: modify return
-        
+        #return now_gap, now_sol # TODO: modify return
+        return 0, 0, 0 # TODO: modify return
+
 class LNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
@@ -181,6 +190,9 @@ class LNS(Search):
                 
         begin_time = time.time()
         GAP = input.gap  # TODO : check LNS gap
+        
+        now_sol, now_time = [], []
+        
         while(time.time() - begin_time <= time_limit):
             print("KK = ", KK)
             #Randomly divide the decision variables into KK blocks
@@ -273,6 +285,10 @@ class LNS(Search):
                             for i in range(vertex_color_num):
                                 ansx[color_to_site[i]] = bestX[i]
                             ans = temp
+                            
+                    now_sol.append(ans)
+                    now_time.append(time.time() - begin_time)
+                    
                 except:
                     print("Cant't optimize more~~")
                     # new_ansx = {}
@@ -286,8 +302,13 @@ class LNS(Search):
         for i in range(len(ansx)):
             new_ansx[num_to_value[i]] = ansx[i]
 
+        for _ in range(now_sol):
+            result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
+
         self.end()
-        return GAP, ans # TODO: modify return
+#        return GAP, ans # TODO: modify return
+        return 0, 0, 0 # TODO: modify return
+
 
 class NALNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -341,18 +362,21 @@ class NALNS(Search):
 
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
         now_sol, now_time, now_gap = greedy_one_NALNS(now_instance, time_limit)
-        # print(now_sol)
-        # print(now_time)
+
+        for _ in range(now_sol):
+            result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
+
         self.end()
         
-        return now_gap, now_sol # TODO: modify return
-         
+#        return now_gap, now_sol # TODO: modify return
+        return 0, 0, 0 # TODO: modify return
 
 class Gurobi(Search): # solver
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get('time_limit') or 10
+        self.log = []
         ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
@@ -363,11 +387,23 @@ class Gurobi(Search): # solver
 
         for var in model.getVars():
             var.Start = input.cansol[var.VarName]
-        model.optimize()
+
+        log = []
+        def my_callback(model, where):
+            if where == GRB.Callback.MIP:
+                runtime = model.cbGet(GRB.Callback.RUNTIME)
+                obj_best = model.cbGet(GRB.Callback.MIP_OBJBST)
+                log.append((runtime, obj_best))
+
+
+        model.optimize(my_callback)
+
+        for _ in range(len(log)):
+            result_list.append((result_list[0][0] + log[_][0], log[_][1]))
     
         self.end()
         
-        return model.MIPGap, model.ObjVal, model.ModelSense
+        return model.MIPGap, model.ObjVal, model.ModelSense # must be it!
         
 
 class ACP(Search): # solver
@@ -420,6 +456,9 @@ class ACP(Search): # solver
         #Initialize the number of rounds below the threshold, which can be either 0 or 1 with little difference.
         turn = 1
         #Continue to the next iteration as long as it hasn't reached the maximum running time
+
+        now_sol, now_time = [], []
+ 
         while(time.time() - begin_time <= time_limit):
             print("KK = ", KK)
             print("PP = ", PP)
@@ -543,7 +582,10 @@ class ACP(Search): # solver
                             turn = 1
                     else:
                         turn = 0
-                
+                    
+                    now_sol.append(ans)
+                    now_time.append(time.time() - begin_time)
+                                   
                 if(model.MIPGap != 0):
                     if(KK == 2 and PP > 1):
                         KK -= 1
@@ -572,10 +614,13 @@ class ACP(Search): # solver
         new_ansx = {}
         for i in range(len(ansx)):
             new_ansx[num_to_value[i]] = ansx[i]
-        
+
+        for _ in range(now_sol):
+            result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
+
         self.end()
-        
-        return ans, ans
+#        return ans, ans
+        return 0, 0, 0 # TODO: modify return
     
         
 class SCIP(Search): # solver
@@ -606,4 +651,5 @@ class SCIP(Search): # solver
         
         self.end()
 
-        return model.getGap(), model.getObjVal()
+#        return model.getGap(), model.getObjVal()
+        return 0, 0, 0 # TODO: modify return
