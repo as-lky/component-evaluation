@@ -11,6 +11,7 @@ import shutil
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
 parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
+parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
 args = parser.parse_args()
 
 def c(a):
@@ -38,9 +39,10 @@ def work_gurobi(instance):
         return data['obj'] * (1 - data['gap'] / 100)
     
 instance_path = args.instance_path
+train_data_dir = args.train_data_dir
 
-grlis = ["bi", "tri", "bir", "trir", "default"]
-prelis = ["l2bs", "gtran", "gat", "gcn", "gurobi", "scip", "cplex"]
+grlis = ["bi", "bir", "default"]
+prelis = ["gcn", "gurobi", "scip", "cplex"]
 modlis = ["sr", "nr", "np", "default"]
 sealis = ["gurobi", "scip", "LIH", "MIH", "LNS", "NALNS", "ACP"]
 instancelis = [os.path.join(instance_path, file) for file in os.listdir(instance_path) if c(file)] # 10 instances
@@ -80,8 +82,9 @@ for instance in instancelis:
                             continue
                     we = f"{gr}_{pre}_{mod}_{sea}_"
                     
-                    subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
-                        "--graphencode", f"{gr}", "--predict", f"{pre}", "--predict_time_limit", "15", "--modify", f"{mod}", "--search", f"{sea}", "--search_time_limit", "15"])    
+                    subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
+                        "--graphencode", f"{gr}", "--predict", f"{pre}", "--predict_time_limit", "15", "--modify", f"{mod}", "--search", f"{sea}", "--search_time_limit", "15"])  # TODO: add error check  
+                    
                     instance_name = os.path.basename(instance)
                     tmp = re.match(r"(.*)\.lp", instance_name)
                     tmp = tmp.group(1)

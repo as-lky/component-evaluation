@@ -33,6 +33,8 @@ def get_sequence_name(args):
 
 if __name__ == "__main__":
 
+    result_list_obj_time = []
+
     start_time = time.time()
     args = parser.parse_args()
     sequence_name = get_sequence_name(args)
@@ -47,7 +49,10 @@ if __name__ == "__main__":
     now = graphencode_component.work()
     now = predict_component.work(now)
     now = modify_component.work(now)
-    now = search_component.work(now)
+    
+    result_list_obj_time.append((time.time() - start_time, now.objval))    
+
+    now = search_component.work(now, result_list_obj_time)
 
     # now : gap, obj, type
     gap = now[0]
@@ -74,3 +79,5 @@ if __name__ == "__main__":
         json.dump(result, f, indent=4)
 
     print("the result has been saved!")
+    
+    

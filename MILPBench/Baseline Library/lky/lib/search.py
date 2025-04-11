@@ -41,7 +41,7 @@ class Search(Component):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(device, taskname, instance, sequence_name)
 
-    def work(self, input: Modify2Search):...
+    def work(self, input: Modify2Search, result_list: list):...
         
 class LIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
@@ -49,7 +49,7 @@ class LIH(Search):
         self.time_limit = kwargs.get("time_limit") or 10
         ... # tackle parameters
 
-    def work(self, input: Cansol2S):
+    def work(self, input: Cansol2S, result_list: list):
         self.begin()
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_LIH(self.instance)
         new_sol = []
@@ -101,7 +101,7 @@ class MIH(Search):
         self.time_limit = kwargs.get("time_limit") or 10
         ... # tackle parameters
 
-    def work(self, input: Cansol2S):
+    def work(self, input: Cansol2S, result_list: list):
         self.begin()
         
         ns_ = []
@@ -158,7 +158,7 @@ class LNS(Search):
         
         ... # tackle parameters
 
-    def work(self, input: Cansol2S):
+    def work(self, input: Cansol2S, result_list: list):
         self.begin()
         
         time_limit = self.time_limit
@@ -296,7 +296,7 @@ class NALNS(Search):
         
         ... # tackle parameters
 
-    def work(self, input: Cansol2S):
+    def work(self, input: Cansol2S, result_list: list):
         
         self.begin()
         n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type = split_problem_NALNS(self.instance)
@@ -355,7 +355,7 @@ class Gurobi(Search): # solver
         self.time_limit = kwargs.get('time_limit') or 10
         ... # tackle parameters
 
-    def work(self, input: Cansol2S):
+    def work(self, input: Cansol2S, result_list: list):
         self.begin()
         
         model = gp.read(self.instance)
@@ -379,7 +379,7 @@ class ACP(Search): # solver
         self.max_turn_ratio = kwargs.get('max_turn_ratio') or 0.1
         ... # tackle parameters
 
-    def work(self, input: Cansol2S):
+    def work(self, input: Cansol2S, result_list: list):
         self.begin()
 
         '''
@@ -586,7 +586,7 @@ class SCIP(Search): # solver
         
         ... # tackle parameters
 
-    def work(self, input: Cansol2S):
+    def work(self, input: Cansol2S, result_list: list):
         self.begin()
 
         model = scp.Model()

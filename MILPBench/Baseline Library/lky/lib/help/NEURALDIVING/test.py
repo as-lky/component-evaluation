@@ -85,11 +85,13 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                 if(constr > constraint[i]):
                     print("QwQ")
                     print(constr,  constraint[i])
+                    return -1, -1, -1, -1
                     #print(now_col)
             else:
                 if(constr < constraint[i]):
                     print("QwQ")
                     print(constr,  constraint[i])
+                    return -1, -1, -1, -1
                     #print(now_col)
                     
     model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
