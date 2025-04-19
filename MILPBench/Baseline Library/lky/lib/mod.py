@@ -31,12 +31,17 @@ class Preprocess2Graphencode(LayerConvey):
         ...
         
 class Graphencode2Predict(LayerConvey): # TODO : no generalization
-    def __init__(self, constraint_features, edge_indices, edge_features, variable_features):
+    def __init__(self, constraint_features, edge_indices, edge_features, variable_features, obj_features=None, obj_variable_val=None, obj_constraint_val=None, edge_obj_var=None, edge_obj_con=None):
         self.constraint_features = constraint_features
         self.edge_indices = edge_indices
         self.edge_features = edge_features
         self.variable_features = variable_features
-        
+        self.obj_features = obj_features
+        self.obj_variable_val = obj_variable_val
+        self.obj_constraint_val = obj_constraint_val
+        self.edge_obj_var = edge_obj_var
+        self.edge_obj_con = edge_obj_con
+
         
 class Predict2Modify(LayerConvey):
     def __init__(self, b_vars, scores):

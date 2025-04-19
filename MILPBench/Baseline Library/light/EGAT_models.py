@@ -88,6 +88,5 @@ class SpGAT(nn.Module):
         new_edge_ = torch.mean(new_edge_, dim = 1).reshape(new_edge_.size()[0], 1)
 
         x = self.output_module(x)
-        x = self.softmax(x)
 
         return x, new_edge_

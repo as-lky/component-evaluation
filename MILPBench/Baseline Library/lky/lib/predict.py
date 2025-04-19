@@ -32,6 +32,8 @@ class Predict(Component):
             cls = L2BS
         elif component == 'gat':
             cls = GAT
+        elif component == 'gtran':
+            cls = GTRAN
         else:
             raise ValueError("Predict component type is not defined")
         
@@ -265,13 +267,14 @@ class GCN(Predict):
 #                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", f"{self.device}", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
 #                                "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}"])    
  
- 
+            exec = ["python", "lib/help/NEURALDIVING/train.py", "--train_data_dir", f"{self.train_data_dir}",
+                   "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}"]
             if self.sequence_name[0][-1] == 'r':
-                subprocess.run(["python", "lib/help/NEURALDIVING/train.py", "--train_data_dir", f"{self.train_data_dir}",
-                                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--random_feature"])    
-            else:
-                subprocess.run(["python", "lib/help/NEURALDIVING/train.py", "--train_data_dir", f"{self.train_data_dir}",
-                                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}"])    
+                exec.append("--random_feature")
+            if self.sequence_name[0][0] == 't':
+                exec.append("--tripartite")
+                
+            subprocess.run(exec)
  
             pathstr = model_path
             # train_data_dir + LP / Pickle    
@@ -729,6 +732,23 @@ class GAT(Predict):
                 new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
         print(len(predict))
+        
+        self.end()
+        return Cantsol(predict, predict)
+
+class GTRAN(Predict):
+        
+    def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
+        super().__init__(component, device, taskname, instance, sequence_name)
+        self.time_limit = kwargs.get("time_limit") or 10
+        if "train_data_dir" in kwargs:
+            self.train_data_dir = kwargs["train_data_dir"]
+        ... # tackle parameters 
+ 
+    def work(self, input: Graphencode2Predict) -> Cantsol:    
+        
+        self.begin()
+        
         
         self.end()
         return Cantsol(predict, predict)
