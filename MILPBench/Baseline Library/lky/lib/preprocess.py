@@ -1,6 +1,5 @@
 import os
 import re
-from torch import instance_norm
 from .mod import Component, Preprocess2Graphencode
 from typing import Type
 

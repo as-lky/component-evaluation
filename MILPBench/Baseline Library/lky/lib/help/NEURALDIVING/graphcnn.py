@@ -84,6 +84,17 @@ class GNNPolicy(torch.nn.Module):
                 torch.nn.ReLU(),
             )
 
+            # EDGE1 EMBEDDING
+            self.edge_embedding1 = torch.nn.Sequential(
+                torch.nn.LayerNorm(edge_nfeats),
+            )
+            
+            # EDGE2 EMBEDDING
+            self.edge_embedding2 = torch.nn.Sequential(
+                torch.nn.LayerNorm(edge_nfeats),
+            )
+
+
         # CONSTRAINT EMBEDDING
         self.cons_embedding = torch.nn.Sequential(
             torch.nn.LayerNorm(cons_nfeats),
@@ -149,6 +160,9 @@ class GNNPolicy(torch.nn.Module):
             edge_features = self.edge_embedding(edge_features)
             variable_features = self.var_embedding(variable_features)
             obj_features = self.obj_embedding(obj_features)
+            obj_variable_val = self.edge_embedding1(obj_variable_val)
+            obj_constraint_val = self.edge_embedding2(obj_constraint_val)
+
 
             edge_var_obj = torch.stack([edge_obj_var[1], edge_obj_var[0]], dim=0)
             edge_cons_obj = torch.stack([edge_obj_cons[1], edge_obj_cons[0]], dim=0)
@@ -156,6 +170,7 @@ class GNNPolicy(torch.nn.Module):
             # Two half convolutions
             for i in range(3):
                 obj_features = self.conv_v_to_o(variable_features, edge_var_obj, obj_variable_val, obj_features)
+
                 
                 constraint_features = self.conv_v_to_c(
                     variable_features, reversed_edge_indices, edge_features, constraint_features

@@ -152,15 +152,71 @@ class BipartiteNodeData(torch_geometric.data.Data):
             return super().__inc__(key, value, *args, **kwargs)
 
 
+class TripartiteNodeData(torch_geometric.data.Data):
+    """
+    This class encode a node tripartite graph observation as returned by the `ecole.observation.NodeBipartite`
+    observation function in a format understood by the pytorch geometric data handlers.
+    """
+
+    def __init__(
+        self,
+        constraint_features,
+        edge_indices,
+        edge_features,
+        variable_features,
+        obj_features,
+        obj_variable_val,
+        obj_constraint_val,
+        edge_obj_var,
+        edge_obj_con,
+        assignment
+    ):
+        super().__init__()
+        self.constraint_features = constraint_features
+        self.edge_index = edge_indices
+        self.edge_attr = edge_features
+        self.variable_features = variable_features
+        self.obj_features = obj_features
+        self.obj_variable_val = obj_variable_val
+        self.obj_constraint_val = obj_constraint_val
+        self.edge_obj_var = edge_obj_var
+        self.edge_obj_con = edge_obj_con
+        self.assignment = assignment
+
+    def __inc__(self, key, value, store, *args, **kwargs):
+        """
+        We overload the pytorch geometric method that tells how to increment indices when concatenating graphs
+        for those entries (edge index, candidates) for which this is not obvious.
+        """
+        if key == "edge_index":
+            return torch.tensor(
+                [[self.constraint_features.size(0)], [self.variable_features.size(0)]]
+            )
+        elif key == "edge_obj_var":
+            return torch.tensor(
+                [[1], [self.variable_features.size(0)]]
+            )
+        elif key == "edge_obj_con":
+            return torch.tensor(
+                [[1], [self.constraint_features.size(0)]]
+            )
+        elif key == "candidates":
+            return self.variable_features.size(0)
+        else:
+            return super().__inc__(key, value, *args, **kwargs)
+
+
+
 class GraphDataset(torch_geometric.data.Dataset):
     """
     This class encodes a collection of graphs, as well as a method to load such graphs from the disk.
     It can be used in turn by the data loaders provided by pytorch geometric.
     """
 
-    def __init__(self, sample_files):
+    def __init__(self, sample_files, tripartite=False):
         super().__init__(root=None, transform=None, pre_transform=None)
         self.sample_files = sample_files
+        self.tripartite = tripartite
 
     def len(self):
         return len(self.sample_files)
@@ -169,23 +225,48 @@ class GraphDataset(torch_geometric.data.Dataset):
         """
         This method loads a node bipartite graph observation as saved on the disk during data collection.
         """
-        with open(self.sample_files[index], "rb") as f:
-            [variable_features, constraint_features, edge_indices, edge_features, solution] = pickle.load(f)
+        if not self.tripartite:
+            with open(self.sample_files[index], "rb") as f:
+                [variable_features, constraint_features, edge_indices, edge_features, solution] = pickle.load(f)
 
-        graph = BipartiteNodeData(
-            torch.FloatTensor(constraint_features),
-            torch.LongTensor(edge_indices),
-            torch.FloatTensor(edge_features),
-            torch.FloatTensor(variable_features),
-            torch.FloatTensor(solution)
-        )
+            graph = BipartiteNodeData(
+                torch.FloatTensor(constraint_features),
+                torch.LongTensor(edge_indices),
+                torch.FloatTensor(edge_features),
+                torch.FloatTensor(variable_features),
+                torch.FloatTensor(solution)
+            )
 
-        # We must tell pytorch geometric how many nodes there are, for indexing purposes
-        graph.num_nodes = len(constraint_features) + len(variable_features)
-        graph.cons_nodes = len(constraint_features)
-        graph.vars_nodes = len(variable_features)
+            # We must tell pytorch geometric how many nodes there are, for indexing purposes
+            graph.num_nodes = len(constraint_features) + len(variable_features)
+            graph.cons_nodes = len(constraint_features)
+            graph.vars_nodes = len(variable_features)
 
-        return graph
+            return graph
+        else:
+            with open(self.sample_files[index], "rb") as f:
+                [variable_features, constraint_features, edge_indices, edge_features, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con, solution] = pickle.load(f)    
+
+            graph = TripartiteNodeData(
+                torch.FloatTensor(constraint_features),
+                torch.LongTensor(edge_indices),
+                torch.FloatTensor(edge_features),
+                torch.FloatTensor(variable_features),
+                torch.FloatTensor(obj_features),
+                torch.FloatTensor(obj_variable_val),
+                torch.FloatTensor(obj_constraint_val),
+                torch.LongTensor(edge_obj_var),
+                torch.LongTensor(edge_obj_con),
+                torch.FloatTensor(solution)
+            )
+
+            # We must tell pytorch geometric how many nodes there are, for indexing purposes
+            graph.num_nodes = len(constraint_features) + len(variable_features) + 1
+            graph.cons_nodes = len(constraint_features)
+            graph.vars_nodes = len(variable_features)
+            graph.obj_nodes = 1
+
+            return graph
 
 
 def pad_tensor(input_, pad_sizes, pad_value=-1e8):

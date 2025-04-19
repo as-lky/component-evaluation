@@ -1,6 +1,6 @@
 import numpy as np
 import torch 
-from typing import Self, Type, cast
+from typing import Type, cast
 from .mod import Component, Preprocess2Graphencode, Graphencode2Predict
 from .help.NEURALDIVING.read_lp import get_a_new2, get_a_new3
 
@@ -19,7 +19,7 @@ class Graphencode(Component):
         else:
             raise ValueError("Graphencode component type is not defined")
 
-        return super().__new__( cast(type[Self], cls) )
+        return super().__new__( cls )
  
  
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):

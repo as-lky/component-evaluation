@@ -8,8 +8,6 @@ import time
 import gurobipy as gp
 import os
 
-from torch import threshold
-
 
 def get_a_new2(instance, random_feature = False):
     model = gp.read(instance)
@@ -185,7 +183,7 @@ def get_a_new3(instance, random_feature = False):
     
     
     edge_obj_var = [[0] * n, [i for i in range(n)]]
-    edge_obj_con = [[0] * n, [i for i in range(m)]]
+    edge_obj_con = [[0] * m, [i for i in range(m)]]
     obj_variable_val = []
     obj_constraint_val = []
     obj_features = [[]]
@@ -198,7 +196,7 @@ def get_a_new3(instance, random_feature = False):
     cnt = 0
     MAX, MIN = -2e9, 2e9
     for i in range(n):
-        obj_variable_val.append(coefficient[i])
+        obj_variable_val.append([coefficient[i]])
         if coefficient[i] != 0:
             cnt += 1
         MAX = max(MAX, coefficient[i])
@@ -207,7 +205,7 @@ def get_a_new3(instance, random_feature = False):
     if random_feature:
         obj_features[0].append(random.random())
     for i in range(m):
-        obj_constraint_val.append(constraint[i])
+        obj_constraint_val.append([constraint[i]])
         
  #   tmp_coefficient = [abs(_) for _ in coefficient if _ != 0]
  #   tmp_coefficient = sorted(tmp_coefficient)

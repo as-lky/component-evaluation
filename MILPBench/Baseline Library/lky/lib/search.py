@@ -13,7 +13,7 @@ from .help.ACP.help import split_problem as split_problem_ACP
 from .mod import Component, Modify2Search, Cansol2S
 
 from pyscipopt import SCIP_PARAMSETTING
-from typing import Self, Type, cast
+from typing import Type, cast
 from gurobipy import GRB
 
 
@@ -36,7 +36,7 @@ class Search(Component):
         else:
             raise ValueError("Search component type is not defined")
 
-        return super().__new__( cast(type[Self], cls) )
+        return super().__new__( cls )
         
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(device, taskname, instance, sequence_name)

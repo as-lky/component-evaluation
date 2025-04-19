@@ -1,4 +1,3 @@
-from http.client import GATEWAY_TIMEOUT
 import torch
 import os
 import re
@@ -9,10 +8,10 @@ import subprocess
 import pickle
 import random
 #import cplex
-from typing import Type, cast, Self
+from typing import Type, cast
 from .mod import Component, Graphencode2Predict, Predict2Modify, Cantsol, Cansol2M
 from .help.NEURALDIVING.test import GraphDataset
-from .help.NEURALDIVING.help import get_a_new2 as get_a_new2_gcn
+from .help.NEURALDIVING.help import get_a_new2 as get_a_new2_gcn, get_a_new3 as get_a_new3_gcn
 from .help.LIGHT.help import get_a_new2 as get_a_new2_gat
 
 from .help.LIGHT.EGAT_models import SpGAT
@@ -37,7 +36,7 @@ class Predict(Component):
         else:
             raise ValueError("Predict component type is not defined")
         
-        return super().__new__( cast(type[Self], cls) )
+        return super().__new__( cls )
 
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(device, taskname, instance, sequence_name)
@@ -233,22 +232,24 @@ class GCN(Predict):
         model_path = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/model_best.pkl'
         W = f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
 
+
+        if not os.path.isdir('./logs/'):
+            os.mkdir('./logs')
+        if not os.path.isdir(f'./logs/train/'):
+            os.mkdir('./logs/train')
+        if not os.path.isdir(f'./logs/train/{self.taskname}/'):
+            os.mkdir(f'./logs/train/{self.taskname}')
+        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/'):
+            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}')
+        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
+            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
+        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
+            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
+        
+            
         if os.path.exists(model_path): # TODO : add parameter for model name
             pathstr = model_path
         else :
-            if not os.path.isdir('./logs/'):
-                os.mkdir('./logs')
-            if not os.path.isdir(f'./logs/train/'):
-                os.mkdir('./logs/train')
-            if not os.path.isdir(f'./logs/train/{self.taskname}/'):
-                os.mkdir(f'./logs/train/{self.taskname}')
-            if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/'):
-                os.mkdir(f'./logs/train/{self.taskname}/{instance_name}')
-            if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
-                os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
-            if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
-                os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
-            
             if not os.path.isdir('./Model/'):
                 os.mkdir('./Model/')
             if not os.path.isdir(f'./Model/{self.taskname}'):
@@ -278,35 +279,72 @@ class GCN(Predict):
  
             pathstr = model_path
             # train_data_dir + LP / Pickle    
-            
-        policy = GNNPolicy(random_feature=True if self.sequence_name[0][-1] == 'r' else False).to(DEVICE)
-        policy.load_state_dict(torch.load(model_path, policy.state_dict()))
         
+        tripartite = True if self.sequence_name[0][0] == 't' else False
+            
+        policy = GNNPolicy(random_feature=True if self.sequence_name[0][-1] == 'r' else False, tripartite=tripartite).to(DEVICE)
+        policy.load_state_dict(torch.load(model_path, policy.state_dict()))
         instance_name = os.path.basename(self.instance)
         instance_name = re.match(r"(.*_[0-9]+)\.lp", instance_name)
         instance_name = instance_name.group(1)
+        
         pk = os.path.join(W, instance_name) + '.pickle'
+
+        S = os.path.dirname(self.instance)
+        S = os.path.dirname(S)
+        S = os.path.join(S, 'Pickle')
+        solution_path = os.path.join(S, instance_name) + '.pickle'
     
         if not os.path.exists(pk):
-            constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2_gcn(self.instance, random_feature=True if self.sequence_name[0][-1] == 'r' else False)            
-            sol = []
-            with open(pk, "wb") as f:
-                pickle.dump([variable_features, constraint_features, edge_indices, edge_features, sol], f)
-        
+            if not tripartite:
+                constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2_gcn(self.instance, random_feature=True if self.sequence_name[0][-1] == 'r' else False)            
+                with open(solution_path, "rb") as f:
+                    solution = pickle.load(f)[0]
+                sol = []
+                for i in range(n):
+                    sol.append(solution[num_to_value[i]])
+                with open(pk, "wb") as f:
+                    pickle.dump([variable_features, constraint_features, edge_indices, edge_features, sol], f)
+                    
+            else :
+                constraint_features, edge_indices, edge_features, variable_features, num_to_value, n, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con = get_a_new3_gcn(self.instance, random_feature=True if self.sequence_name[0][-1] == 'r' else False)
+                with open(solution_path, "rb") as f:
+                    solution = pickle.load(f)[0]
+                sol = []
+                for i in range(n):
+                    sol.append(solution[num_to_value[i]])
+                
+                with open(pk, "wb") as f:
+                    pickle.dump([variable_features, constraint_features, edge_indices, edge_features, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con, sol], f)
+                
+                    
         file = [pk]
-        data = GraphDataset(file)
+        data = GraphDataset(file, tripartite=tripartite)
         loader = torch_geometric.loader.DataLoader(data, batch_size = 1)
 
         logits, select = None, None
         for batch in loader:
             batch = batch.to(self.device)
             # Compute the logits (i.e. pre-softmax activations) according to the policy on the concatenated graphs
-            logits, select = policy(
-                batch.constraint_features,
-                batch.edge_index,
-                batch.edge_attr,
-                batch.variable_features,
-            )
+            if not tripartite:
+                logits, select = policy(
+                    batch.constraint_features,
+                    batch.edge_index,
+                    batch.edge_attr,
+                    batch.variable_features,
+                )
+            else:
+                logits, select = policy(
+                    batch.constraint_features,
+                    batch.edge_index,
+                    batch.edge_attr,
+                    batch.variable_features,
+                    batch.obj_features,
+                    batch.obj_variable_val,
+                    batch.obj_constraint_val,
+                    batch.edge_obj_var,
+                    batch.edge_obj_con,
+                )
 
         self.end()
         return Cantsol(logits, select)

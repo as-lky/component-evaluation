@@ -182,7 +182,7 @@ class GraphDataset(torch_geometric.data.Dataset):
                 with open(pk, "wb") as f:
                     pickle.dump([variable_features, constraint_features, edge_indices, edge_features, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con, sol], f)
                 solution = sol
-                    
+             
             graph = TripartiteNodeData(
                 torch.FloatTensor(constraint_features),
                 torch.LongTensor(edge_indices),
@@ -195,6 +195,7 @@ class GraphDataset(torch_geometric.data.Dataset):
                 torch.LongTensor(edge_obj_con),
                 torch.FloatTensor(solution)
             )
+
 
             # We must tell pytorch geometric how many nodes there are, for indexing purposes
             graph.num_nodes = len(constraint_features) + len(variable_features) + 1
@@ -240,13 +241,18 @@ def process(policy, data_loader, device, optimizer=None, tripartite=False):
                     batch.variable_features,
                 )
             else :
+
                 logits, select = policy(
                     batch.constraint_features,
                     batch.edge_index,
                     batch.edge_attr,
                     batch.variable_features,
+                    batch.obj_features,
+                    batch.obj_variable_val,
+                    batch.obj_constraint_val,
+                    batch.edge_obj_var,
+                    batch.edge_obj_con,
                 )
-                # TODO
             
             n = len(batch.variable_features)
             choose = {}
@@ -469,7 +475,7 @@ def get_a_new3(instance, random_feature = False):
     
     
     edge_obj_var = [[0] * n, [i for i in range(n)]]
-    edge_obj_con = [[0] * n, [i for i in range(m)]]
+    edge_obj_con = [[0] * m, [i for i in range(m)]]
     obj_variable_val = []
     obj_constraint_val = []
     obj_features = [[]]
@@ -482,7 +488,7 @@ def get_a_new3(instance, random_feature = False):
     cnt = 0
     MAX, MIN = -2e9, 2e9
     for i in range(n):
-        obj_variable_val.append(coefficient[i])
+        obj_variable_val.append([coefficient[i]])
         if coefficient[i] != 0:
             cnt += 1
         MAX = max(MAX, coefficient[i])
@@ -491,7 +497,7 @@ def get_a_new3(instance, random_feature = False):
     if random_feature:
         obj_features[0].append(random.random())
     for i in range(m):
-        obj_constraint_val.append(constraint[i])
+        obj_constraint_val.append([constraint[i]])
         
  #   tmp_coefficient = [abs(_) for _ in coefficient if _ != 0]
  #   tmp_coefficient = sorted(tmp_coefficient)

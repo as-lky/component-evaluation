@@ -80,4 +80,4 @@ if __name__ == "__main__":
 
     print("the result has been saved!")
     
-    
+    # python main.py --device cuda --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP/IS_easy_instance_0.lp --graphencode tri --predict gcn --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/ --modify sr --search gurobi

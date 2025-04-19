@@ -1,5 +1,5 @@
 import torch
-from typing import Type, cast, Self
+from typing import Type, cast
 from .mod import Component, Predict2Modify, Modify2Search, Cantsol, Cansol2M, Cansol2S, INFEASIBLEERROR
 from .help.NEURALDIVING.read_lp import get_a_new2
 from .help.NEURALDIVING.test import Gurobi_solver 
@@ -27,7 +27,7 @@ class Modify(Component):
             cls = Default
         else:
             raise ValueError("Modify component type is not defined")
-        return super().__new__( cast(type[Self], cls) )
+        return super().__new__( cls )
         
         
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
