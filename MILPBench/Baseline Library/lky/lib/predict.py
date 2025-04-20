@@ -534,6 +534,7 @@ class GAT(Predict):
         
         self.begin()
         
+        device = self.device
         instance_name = os.path.basename(self.instance)
         instance_name = re.match(r"(.*)_[0-9]+", instance_name)
         if instance_name == None:
@@ -547,22 +548,22 @@ class GAT(Predict):
         model_path = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/model_best.pkl'
         W = f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
 
+        if not os.path.isdir('./logs/'):
+            os.mkdir('./logs')
+        if not os.path.isdir(f'./logs/train/'):
+            os.mkdir('./logs/train')
+        if not os.path.isdir(f'./logs/train/{self.taskname}/'):
+            os.mkdir(f'./logs/train/{self.taskname}')
+        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/'):
+            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}')
+        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
+            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
+        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
+            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
+
         if os.path.exists(model_path): # TODO : add parameter for model name
             pathstr = model_path
         else :
-            if not os.path.isdir('./logs/'):
-                os.mkdir('./logs')
-            if not os.path.isdir(f'./logs/train/'):
-                os.mkdir('./logs/train')
-            if not os.path.isdir(f'./logs/train/{self.taskname}/'):
-                os.mkdir(f'./logs/train/{self.taskname}')
-            if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/'):
-                os.mkdir(f'./logs/train/{self.taskname}/{instance_name}')
-            if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
-                os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
-            if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
-                os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
-            
             if not os.path.isdir('./Model/'):
                 os.mkdir('./Model/')
             if not os.path.isdir(f'./Model/{self.taskname}'):
@@ -762,14 +763,14 @@ class GAT(Predict):
         for i in range(edge_num):
             new_edge_feat.append(0)
         for i in range(partition_num):
-            now_predict, now_new_edge_feat = compute_test(torch.tensor([item.cpu().detach().numpy() for item in color_features[i]]).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
+            now_predict, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
             for j in range(len(color_site_to_num[i])):
                 if(color_site_to_num[i][j] < n):
                     predict[color_site_to_num[i][j]] = now_predict[j].cpu().detach().numpy()
             for j in range(len(color_edge_to_num[i])):
                 new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
-        print(len(predict))
+        print(predict)
         
         self.end()
         return Cantsol(predict, predict)

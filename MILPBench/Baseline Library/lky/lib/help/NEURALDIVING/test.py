@@ -52,17 +52,6 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
             else:
                 x.append(model.addVar(lb = lower_bound[i], ub = upper_bound[i], vtype = GRB.INTEGER))
                 
-    coeff = 0
-    for i in range(n):
-        if(now_col[i] == 1):
-            coeff += x[site_to_new[i]] * coefficient[i]
-        else:
-            coeff += now_sol[i] * coefficient[i]
-    if(obj_type == 'maximize'):
-        model.setObjective(coeff, GRB.MAXIMIZE)
-    else:
-        model.setObjective(coeff, GRB.MINIMIZE)
-        
     for i in range(m):
         constr = 0
         flag = 0
@@ -83,20 +72,36 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
         else:
             if(constraint_type[i] == 1):
                 if(constr > constraint[i]):
-                    print("QwQ")
+                    print("QwQ fine")
                     print(constr,  constraint[i])
                     return -1, -1, -1, -1
                     #print(now_col)
             else:
                 if(constr < constraint[i]):
-                    print("QwQ")
+                    print("QwQ fine")
                     print(constr,  constraint[i])
                     return -1, -1, -1, -1
                     #print(now_col)
+    
+    coeff = 0
+    flag = 0
+    for i in range(n):
+        if(now_col[i] == 1):
+            coeff += x[site_to_new[i]] * coefficient[i]
+        else:
+            coeff += now_sol[i] * coefficient[i]
+            flag = 1
+    
+    if flag == 1:
+        if(obj_type == 'maximize'):
+            model.setObjective(coeff, GRB.MAXIMIZE)
+        else:
+            model.setObjective(coeff, GRB.MINIMIZE)
                     
-    model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
-    model.optimize()
-    #print(time.time() - begin_time)
+        model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
+        model.optimize()
+        #print(time.time() - begin_time)
+
     try:
         new_sol = []
         for i in range(n):
@@ -108,7 +113,7 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                 else:
                     new_sol.append((int)(x[site_to_new[i]].X))
         if model.NumVars == 0:
-            return 1, new_sol, model.ObjVal, 0
+            return 1, new_sol, coeff, 0
         
         return 1, new_sol, model.ObjVal, model.MIPGap
     except:

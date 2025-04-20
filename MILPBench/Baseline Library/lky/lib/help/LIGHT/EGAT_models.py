@@ -39,7 +39,7 @@ class SpGraphAttentionLayer(nn.Module):
         self.alpha = alpha
         self.concat = concat
 
-        self.W = nn.Parameter(torch.zeros(size=(node_features, out_features)))
+        self.W = nn.Parameter(torch.zeros(size=(node_features, out_features)))  
         nn.init.xavier_normal_(self.W.data, gain=1.414)
                 
         self.a = nn.Parameter(torch.zeros(size=(1, 2 * out_features + 1)))

@@ -16,7 +16,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 
-from .EGAT_models import SpGAT
+from EGAT_models import SpGAT
 
 class Focal_Loss(nn.Module):
     def __init__(self, weight, gamma=2):

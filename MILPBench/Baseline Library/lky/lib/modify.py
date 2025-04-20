@@ -4,6 +4,7 @@ from .mod import Component, Predict2Modify, Modify2Search, Cantsol, Cansol2M, Ca
 from .help.NEURALDIVING.read_lp import get_a_new2
 from .help.NEURALDIVING.test import Gurobi_solver 
 from pyscipopt import SCIP_PARAMSETTING
+import re
 import numpy as np
 import gurobipy as gp
 import pyscipopt as scp        
@@ -98,8 +99,11 @@ class Np(Modify): # build a new problem based on the prediction
         for _ in self.sequence_name:
             sn += _ + "_"
 
+        tmp = re.match(r"(.*)\.lp", instance_name)
+        tmp = tmp.group(1)
+
         
-        log_path = f'./logs/work/{self.taskname}/{sn}/{instance_name}.log'
+        log_path = f'./logs/work/{self.taskname}/{sn}/{tmp}.log'
         m1.setLogfile(log_path)
         m1.readProblem(self.instance)
 
@@ -124,7 +128,12 @@ class Np(Modify): # build a new problem based on the prediction
             sn = ""
             for _ in self.sequence_name:
                 sn += _ + "_"
-            des = f'./logs/work/{self.taskname}/{sn}/result.txt'
+                
+            instance_name = os.path.basename(self.instance)
+            tmp = re.match(r"(.*)\.lp", instance_name)
+            tmp = tmp.group(1)
+
+            des = f'./logs/work/{self.taskname}/{sn}/{tmp}_result.txt'
             log("ERROR", des)
             log("MODIFY INFEASIBLE", des)
             raise INFEASIBLEERROR("Modify infeasible")
@@ -152,10 +161,10 @@ class Sr(Modify): # build a new problem based on the prediction
 
         time_limit = self.time_limit
 
-        new_select = input.select.to('cpu').detach().numpy() 
-        new_select.sort()
+        new_select = input.select.clone()
+        new_select, _tmp = torch.sort(new_select)
 
-        now_sol = input.logits.to('cpu').detach().numpy() 
+        now_sol = input.logits
          
         for i in range(n):
             if(value_type[i] != 'C'):
@@ -168,6 +177,8 @@ class Sr(Modify): # build a new problem based on the prediction
         for turn in range(11):
             choose = []
             rate = (int)(0.1 * turn * n)
+            if rate >= n :
+                rate = n - 1
             for i in range(n):
                 if(input.select[i] >= new_select[rate]):
                     choose.append(0)
@@ -184,7 +195,12 @@ class Sr(Modify): # build a new problem based on the prediction
             sn = ""
             for _ in self.sequence_name:
                 sn += _ + "_"
-            des = f'./logs/work/{self.taskname}/{sn}/result.txt'
+                
+            instance_name = os.path.basename(self.instance)
+            tmp = re.match(r"(.*)\.lp", instance_name)
+            tmp = tmp.group(1)
+                
+            des = f'./logs/work/{self.taskname}/{sn}/{tmp}_result.txt'
             log("ERROR", des)
             log("MODIFY INFEASIBLE", des)
             raise INFEASIBLEERROR("Modify infeasible")
@@ -261,7 +277,10 @@ class Nr(Modify): # build a new problem based on the prediction
             sn = ""
             for _ in self.sequence_name:
                 sn += _ + "_"
-            des = f'./logs/work/{self.taskname}/{sn}/result.txt'
+            instance_name = os.path.basename(self.instance)
+            tmp = re.match(r"(.*)\.lp", instance_name)
+            tmp = tmp.group(1)
+            des = f'./logs/work/{self.taskname}/{sn}/{tmp}_result.txt'
             log("ERROR", des)
             log("MODIFY INFEASIBLE", des)
             raise INFEASIBLEERROR("Modify infeasible")

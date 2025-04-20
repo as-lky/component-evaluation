@@ -632,7 +632,7 @@ def parse_args():
     parser.add_argument("--tripartite", action='store_true', help="whether use tripartite graph to encode problem")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size for training.")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate for the optimizer.")
-    parser.add_argument("--num_epochs", type=int, default=3, help="Number of epochs to train for.")
+    parser.add_argument("--num_epochs", type=int, default=30, help="Number of epochs to train for.")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to use for training.")
     return parser.parse_args()
 

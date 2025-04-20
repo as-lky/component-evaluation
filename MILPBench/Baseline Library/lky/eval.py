@@ -11,7 +11,7 @@ import shutil
 import math
 from scipy.interpolate import PchipInterpolator
 
-# python eval.py --taskname IS --instance_path .\Dataset\IS_easy_instance\IS_easy_instance\LP --train_data_dir .\Dataset\IS_easy_instance\IS_easy_instance\
+# python eval.py --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/
 
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
 parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
@@ -32,7 +32,7 @@ def work_gurobi(instance):
     tmp = tmp.group(1)
    
 
-    subprocess.run(["python", "main.py", "--device", "cpu", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
+    subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
     "--graphencode", "default", "--predict", "gurobi", "--predict_time_limit", "10", "--modify", "default", "--search", "gurobi"])    
     des = f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp}_result.txt'
     with open(des, 'r') as f:
@@ -46,7 +46,7 @@ def work_gurobi(instance):
 instance_path = args.instance_path
 train_data_dir = args.train_data_dir
 
-grlis = ["bi", "bir", "default"]
+grlis = ["bi", "bir", "tri", "trir", "default"]
 prelis = ["gcn", "gurobi", "scip"]
 modlis = ["sr", "nr", "np", "default"]
 sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
@@ -213,30 +213,30 @@ for instance in instancelis:
                             continue
                     we = f"{gr}_{pre}_{mod}_{sea}_"
                     
-                    #subprocess.run(["python", "main.py", "--device", "cpu", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
-                    #    "--graphencode", f"{gr}", "--predict", f"{pre}", "--predict_time_limit", "15", "--modify", f"{mod}", "--search", f"{sea}", "--search_time_limit", "15"])  # TODO: add error check  
+                    subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
+                        "--graphencode", f"{gr}", "--predict", f"{pre}", "--predict_time_limit", "30", "--modify", f"{mod}", "--search", f"{sea}", "--search_time_limit", "30"])  # TODO: add error check  
                     
-                    instance_name = os.path.basename(instance)
-                    tmp = re.match(r"(.*)\.lp", instance_name)
-                    tmp = tmp.group(1)
+                    # instance_name = os.path.basename(instance)
+                    # tmp = re.match(r"(.*)\.lp", instance_name)
+                    # tmp = tmp.group(1)
    
-                    des = f'./logs/work/{args.taskname}/{we}/{tmp}_result.txt'
-                    if not os.path.exists(des):
-                        continue
-                    with open(des, 'r') as f:
-                        data = json.load(f)
-                    now_score[we] = calc(data, lobj)
+                    # des = f'./logs/work/{args.taskname}/{we}/{tmp}_result.txt'
+                    # if not os.path.exists(des):
+                    #     continue
+                    # with open(des, 'r') as f:
+                    #     data = json.load(f)
+                    # now_score[we] = calc(data, lobj)
     
-    LIS = []
-    for key, value in now_score.items():
-        LIS.append(value)
-    SUM = calc_api(LIS)
-    for key, value in now_score.items():
-        LIS.remove(value)
-        sum = calc_api(LIS)
-        scores[key] = scores.get(key, 0) + SUM - sum
-        LIS.append(value)
+    # LIS = []
+    # for key, value in now_score.items():
+    #     LIS.append(value)
+    # SUM = calc_api(LIS)
+    # for key, value in now_score.items():
+    #     LIS.remove(value)
+    #     sum = calc_api(LIS)
+    #     scores[key] = scores.get(key, 0) + SUM - sum
+    #     LIS.append(value)
 
-for key, value in scores.items():
-    print(key, value)    
+# for key, value in scores.items():
+#     print(key, value)    
     
