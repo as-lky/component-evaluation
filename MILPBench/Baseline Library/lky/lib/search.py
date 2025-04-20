@@ -583,8 +583,8 @@ class ACP(Search): # solver
                     else:
                         turn = 0
                     
-                    now_sol.append(ans)
-                    now_time.append(time.time() - begin_time)
+                now_sol.append(ans)
+                now_time.append(time.time() - begin_time)
                                    
                 if(model.MIPGap != 0):
                     if(KK == 2 and PP > 1):
