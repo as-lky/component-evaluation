@@ -308,7 +308,7 @@ for ____ in sample_files:
 # Model and optimizer
 model = SpGAT(nfeat=data_features[0].shape[1],    # Feature dimension
             nhid=args.hidden,             # Feature dimension of each hidden layer
-            nclass=int(data_solution[0].max()) + 1, # Number of classes
+            nclass=1, # Number of classes
             dropout=args.dropout,         # Dropout
             nheads=args.nb_heads,         # Number of heads
             alpha=args.alpha)             # LeakyReLU alpha coefficient
@@ -340,13 +340,36 @@ def train(epoch, num):
     global data_edge_features
     t = time.time()
 
-    output, data_edge_features[num] = model(data_features[num], data_edge_A[num], data_edge_B[num], data_edge_features[num].detach())
+    output, select, data_edge_features[num] = model(data_features[num], data_edge_A[num], data_edge_B[num], data_edge_features[num].detach())
 #    print(data_solution[num][idx_train])
 
-    lf = Focal_Loss(torch.as_tensor(data_labels[num]))
-    loss_train = lf(output[idx_train], data_solution[num][idx_train])
+    #lf = Focal_Loss(torch.as_tensor(data_labels[num]))
+    #loss_train = lf(output[idx_train], data_solution[num][idx_train])
 
-    return loss_train
+    #return loss_train
+    choose = {}
+    n = output.shape[0]
+    for i in range(n):
+        if(select[i] >= 0.5):
+            choose[i] = 0
+        else:
+            choose[i] = 1
+    new_idx_train = []
+    for i in range(n):
+        if(choose[i]):
+            new_idx_train.append(i)
+    
+    set_c = 0.7
+    if(len(new_idx_train) < set_c * n):
+        loss_select = (set_c - len(new_idx_train) / n) ** 2
+    else:
+        loss_select = 0
+    loss_func = torch.nn.MSELoss()
+    loss = loss_func(output[new_idx_train], torch.tensor(np.array(optimal_solution))[new_idx_train]) + loss_select
+
+    return loss
+
+
 
 t_total = time.time()
 loss_values = []

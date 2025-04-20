@@ -749,32 +749,31 @@ class GAT(Predict):
 
         def compute_test(features, edgeA, edgeB, edge_features):
             model.eval()
-            output, new_edge_feat = model(features, edgeA, edgeB, edge_features)
+            output, select, new_edge_feat = model(features, edgeA, edgeB, edge_features)
             #loss_test = F.nll_loss(output[idx_test], labels[idx_test])
             #acc_test = accuracy(output[idx_test], labels[idx_test])
             #print("Test set results:",
             #      "loss= {:.4f}".format(loss_test.data.item()))
-            return(output, new_edge_feat)
+            return(output, select, new_edge_feat)
 
         predict = []
+        select = []
         new_edge_feat = []
         for i in range(n + m):
             predict.append([])
         for i in range(edge_num):
             new_edge_feat.append(0)
         for i in range(partition_num):
-            now_predict, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
+            now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
             for j in range(len(color_site_to_num[i])):
                 if(color_site_to_num[i][j] < n):
                     predict[color_site_to_num[i][j]] = now_predict[j].cpu().detach().numpy()
+                    select[color_site_to_num[i][j]] = now_select[j].cpu().detach().numpy()
             for j in range(len(color_edge_to_num[i])):
                 new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
-        print(len(predict), predict[0])
-        
-        
         self.end()
-        return Cantsol(predict, predict)
+        return Cantsol(predict, select)
 
 class GTRAN(Predict):
         

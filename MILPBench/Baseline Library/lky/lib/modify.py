@@ -161,7 +161,7 @@ class Sr(Modify): # build a new problem based on the prediction
 
         time_limit = self.time_limit
 
-        new_select = input.select.clone()
+        new_select = torch.tensor(input.select).clone()
         new_select, _tmp = torch.sort(new_select)
 
         now_sol = input.logits

@@ -160,6 +160,17 @@ class SpGAT(nn.Module):
             torch.nn.Linear(embed_size, nclass, bias=False),
             #torch.nn.Sigmoid()
         )
+        
+        self.select_module = torch.nn.Sequential(
+            torch.nn.Linear(embed_size, embed_size),
+            #torch.nn.LogSoftmax(dim = 0),
+            torch.nn.ReLU(),
+            torch.nn.Linear(embed_size, embed_size),
+            #torch.nn.LogSoftmax(dim = 0),
+            torch.nn.ReLU(),
+            torch.nn.Linear(embed_size, nclass, bias=False),
+            #torch.nn.Sigmoid()
+        )
         self.softmax = nn.Softmax(dim = 1)
 
     def forward(self, x, edgeA, edgeB, edge_feat):
@@ -189,6 +200,7 @@ class SpGAT(nn.Module):
         new_edge_ = torch.mean(new_edge_, dim = 1).reshape(new_edge_.size()[0], 1)
 
         x = self.output_module(x)
-        x = self.softmax(x)
+        y = self.select_module(x)
+#        x = self.softmax(x)
 
-        return x, new_edge_
+        return x, y, new_edge_
