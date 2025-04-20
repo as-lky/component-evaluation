@@ -739,7 +739,7 @@ class GAT(Predict):
         path_model = model_path
         model = SpGAT(nfeat=features.shape[1],    # Feature dimension
                     nhid=64,                    # Feature dimension of each hidden layer
-                    nclass=2,                   # Number of classes
+                    nclass=1,                   # Number of classes
                     dropout=0.5,                # Dropout
                     nheads=6,                   # Number of heads
                     alpha=0.2)                  # LeakyReLU alpha coefficient
@@ -770,7 +770,8 @@ class GAT(Predict):
             for j in range(len(color_edge_to_num[i])):
                 new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
-        print(predict)
+        print(len(predict), predict[0])
+        
         
         self.end()
         return Cantsol(predict, predict)

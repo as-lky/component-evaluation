@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser(description="receive evaluate instruction")
 parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
+parser.add_argument("--eval", action="store_true", help="exec eval func")
 args = parser.parse_args()
 
 def c(a):
@@ -31,9 +32,10 @@ def work_gurobi(instance):
     tmp = re.match(r"(.*)\.lp", instance_name)
     tmp = tmp.group(1)
    
-
-    subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
-    "--graphencode", "default", "--predict", "gurobi", "--predict_time_limit", "10", "--modify", "default", "--search", "gurobi"])    
+    if not os.path.exists(f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp}_result.txt'):
+        subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
+        "--graphencode", "default", "--predict", "gurobi", "--predict_time_limit", "60", "--modify", "default", "--search", "gurobi"])    
+    
     des = f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp}_result.txt'
     with open(des, 'r') as f:
         data = json.load(f)
@@ -49,7 +51,9 @@ train_data_dir = args.train_data_dir
 grlis = ["bi", "bir", "tri", "trir", "default"]
 prelis = ["gcn", "gurobi", "scip"]
 modlis = ["sr", "nr", "np", "default"]
-sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
+#sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
+sealis = ["gurobi"]
+
 instancelis = [os.path.join(instance_path, file) for file in os.listdir(instance_path) if c(file)] # 10 instances
 
 score_dic = {}
@@ -65,10 +69,18 @@ def calc_api(lis):
                 w = round(j, 8)
                 f.write(f"{w} ")
             f.write("\n")
-    subprocess.run(['./calc/hbda/build/nonincremental/nonincremental', '-O', 'calc/hbda/build/nonincremental/tmp.txt'])    
-    return 0
+    if os.path.exists('calc/hbda/build/nonincremental/result.txt'):
+        os.remove('calc/hbda/build/nonincremental/result.txt')
+    
+    subprocess.run(['./calc/hbda/build/nonincremental/nonincremental', '-O', 'calc/hbda/build/nonincremental/tmp.txt', '-S', 'calc/hbda/build/nonincremental/result.txt'])    
+    with open('calc/hbda/build/nonincremental/result.txt', 'r') as f:
+        lines = f.readlines()
+        line_result = lines[1].strip()
+        result = line_result.split()
+        SUM = float(result[-1])
+    return SUM
 
-def gapstart_c(time_list, val_list, lobj): # 初始解gap
+def gapstart_c(time_list, val_list, lobj): # 初始解gap 
     val = val_list[0]
     gap = abs(val - lobj) / val if val != 0 else 1000  
     return min(gap / 1000, 1) # 越小越好
@@ -178,13 +190,18 @@ def calc(data, lobj):
           ir_c(time_list, val_list, lobj),
           nr_c(time_list, val_list, lobj),
           stime_c(time_list, val_list, lobj),
+          imprate_c(time_list, val_list, lobj),
+          stability_c(time_list, val_list, lobj),
+          earlygap_c(time_list, val_list, lobj),
+          trend_c(time_list, val_list, lobj),
           # TODO: 使用大模型指标
           ]
-    ll2 = [0.1, 0.4, 0.2, 0.1, 0.2]
+    ll2 = [0.05, 0.4, 0.15, 0.05, 0.15, 0.05, 0.05, 0.05, 0.05]
     for i in range(len(ll1)):
         ll1[i] *= ll2[i]
         ll1[i] /= 0.4  
     return ll1
+
 
     # TODO:加入更多指标
     # 几个收敛指标?
@@ -192,11 +209,59 @@ def calc(data, lobj):
     # 加入大模型的
     ...
     
-scores = {}
+    
+def run():
+    scores = {}
 
-for instance in instancelis:
-    lobj, type_ = work_gurobi(instance)
-    now_score = {}
+
+    for instance in instancelis:
+        lobj, type_ = work_gurobi(instance)
+        now_score = {}
+        for gr in grlis:
+            for pre in prelis:
+                for mod in modlis:
+                    for sea in sealis:
+                        if gr == "default":
+                            if pre != "gurobi" and pre != "scip" and pre != "cplex":
+                                continue
+                            if mod != "default":
+                                continue
+                        else:
+                            if pre == "gurobi" or pre == "scip" or pre == "cplex":
+                                continue
+                            if mod == "default":
+                                continue
+                        we = f"{gr}_{pre}_{mod}_{sea}_"
+                        
+                        subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
+                            "--graphencode", f"{gr}", "--predict", f"{pre}", "--predict_time_limit", "30", "--modify", f"{mod}", "--search", f"{sea}", "--search_time_limit", "30"])  # TODO: add error check  
+                        
+                        # instance_name = os.path.basename(instance)
+                        # tmp = re.match(r"(.*)\.lp", instance_name)
+                        # tmp = tmp.group(1)
+    
+                        # des = f'./logs/work/{args.taskname}/{we}/{tmp}_result.txt'
+                        # if not os.path.exists(des):
+                        #     continue
+                        # with open(des, 'r') as f:
+                        #     data = json.load(f)
+                        # now_score[we] = calc(data, lobj)
+        
+        # LIS = []
+        # for key, value in now_score.items():
+        #     LIS.append(value)
+        # SUM = calc_api(LIS)
+        # for key, value in now_score.items():
+        #     LIS.remove(value)
+        #     sum = calc_api(LIS)
+        #     scores[key] = scores.get(key, 0) + SUM - sum
+        #     LIS.append(value)
+
+    # for key, value in scores.items():
+    #     print(key, value)    
+
+def eval():
+    result_list = []
     for gr in grlis:
         for pre in prelis:
             for mod in modlis:
@@ -211,32 +276,45 @@ for instance in instancelis:
                             continue
                         if mod == "default":
                             continue
+ #                   if not (gr == "default" and pre == "gurobi" and mod == "default" and sea == "gurobi"):
+#                        continue
+                    
                     we = f"{gr}_{pre}_{mod}_{sea}_"
-                    
-                    subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
-                        "--graphencode", f"{gr}", "--predict", f"{pre}", "--predict_time_limit", "30", "--modify", f"{mod}", "--search", f"{sea}", "--search_time_limit", "30"])  # TODO: add error check  
-                    
-                    # instance_name = os.path.basename(instance)
-                    # tmp = re.match(r"(.*)\.lp", instance_name)
-                    # tmp = tmp.group(1)
-   
-                    # des = f'./logs/work/{args.taskname}/{we}/{tmp}_result.txt'
-                    # if not os.path.exists(des):
-                    #     continue
-                    # with open(des, 'r') as f:
-                    #     data = json.load(f)
-                    # now_score[we] = calc(data, lobj)
-    
-    # LIS = []
-    # for key, value in now_score.items():
-    #     LIS.append(value)
-    # SUM = calc_api(LIS)
-    # for key, value in now_score.items():
-    #     LIS.remove(value)
-    #     sum = calc_api(LIS)
-    #     scores[key] = scores.get(key, 0) + SUM - sum
-    #     LIS.append(value)
+                    scores = 0
+                    cnt = 0
+                    sum = 0
+                    for instance in instancelis:
+                        
+                        instance_name = os.path.basename(instance)
+                        tmp = re.match(r"(.*)\.lp", instance_name)
+                        tmp = tmp.group(1)
+                        des = f'./logs/work/{args.taskname}/{we}/{tmp}_result.txt'
+                        if not os.path.exists(des):
+                            continue
+                        cnt += 1
+                        lobj, type_ = work_gurobi(instance)
 
-# for key, value in scores.items():
-#     print(key, value)    
-    
+                        with open(des, 'r') as f:
+                            data = json.load(f)
+                        LIS = calc(data, lobj)
+                        sum = sum + calc_api([LIS])
+                    
+                    if cnt != 10:
+                        continue
+                    
+                    if cnt == 0:
+                        result_list.append((we, sum))
+                    else:
+                        result_list.append((we, sum / cnt))
+
+    instance_name = os.path.basename(instance)
+    tmp = re.match(r"(.*)_[0-9]+\.lp", instance_name)
+    tmp = tmp.group(1)
+    des = f'./logs/work/{args.taskname}/{tmp}_result.txt'
+    with open(des, 'w') as f:                
+        json.dump(result_list, f, indent=4)
+        
+if args.eval:
+    eval()
+else :
+    run()
