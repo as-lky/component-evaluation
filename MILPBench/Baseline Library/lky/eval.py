@@ -9,7 +9,9 @@ import subprocess
 import json
 import shutil
 import math
-from scipy.interpolate import PchipInterpolator
+from scipy.optimize import brentq
+from pycaret.regression import *
+
 
 # python eval.py --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/
 
@@ -50,9 +52,10 @@ train_data_dir = args.train_data_dir
 
 grlis = ["bi", "bir", "tri", "trir", "default"]
 prelis = ["gcn", "gurobi", "scip"]
+#prelis = ["gat"]
 modlis = ["sr", "nr", "np", "default"]
-#sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
-sealis = ["gurobi"]
+sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
+#sealis = ["MIH", "LNS", "NALNS"]
 
 instancelis = [os.path.join(instance_path, file) for file in os.listdir(instance_path) if c(file)] # 10 instances
 
@@ -82,24 +85,28 @@ def calc_api(lis):
 
 def gapstart_c(time_list, val_list, lobj): # 初始解gap 
     val = val_list[0]
-    gap = abs(val - lobj) / val if val != 0 else 1000  
-    return min(gap / 1000, 1) # 越小越好
+    gap = abs(val - lobj) / val if val != 0 else 999999999  
+    k = 0.01
+    t = 1 - math.exp(-k * gap * 100) 
+    if t >= 0.95:
+        t = 0.95
+    return gap, t # 越小越好
 
 def gapend_c(time_list, val_list, lobj): # 最终gap
     val = val_list[-1]
-    gap = abs(val - lobj) / val if val != 0 else 10
-    return min(gap / 10, 1) # 越小越好
+    gap = abs(val - lobj) / val if val != 0 else 999999999  
+    k = 0.01
+    return gap, 1 - math.exp(-k * gap * 100) # 越小越好
+
 
 def ir_c(time_list, val_list, lobj): # 改进比率
-    ir = abs(val_list[-1] - val_list[0]) / val_list[0] if val_list[0] != 0 else 1000000
-    if ir < 0.01:
-        ir = 0.01
-    if ir > 100000:
-        ir = 100000
+    ir = abs(val_list[-1] - val_list[0]) / val_list[0] if val_list[0] != 0 else 99990
+    if ir > 99990:
+        ir = 99990
     # 差距可能很大！
-    a = math.log(ir) # -2 到 5
-    a = 1 - (a + 2) / 7
-    return a # 越小越好
+    a = math.log(ir + 10) # 1 到 5
+    a = 1 - a / 5
+    return ir, a # 越小越好
 
 def nr_c(time_list, val_list, lobj): # 求解的有效率
     num = 0
@@ -107,32 +114,63 @@ def nr_c(time_list, val_list, lobj): # 求解的有效率
         if abs(_ - lobj) / lobj < 0.001:
             num += 1
     nr = num / len(val_list) 
-    return 1 - nr # 越小越好
+    if num == 0: 
+        nr = 0.5 / len(val_list)
+    return num / len(val_list), 1 - nr # 越小越好
 
-def stime_c(time_list, val_list, lobj): # 求解的预估收敛时间
+def sgap_stime_c(time_list, val_list, lobj): # 预估收敛gap & 收敛到预估收敛gap一定范围内的预估收敛时间
     if len(val_list) < 2:
-        return 1
-    vv = val_list
+        return 0.5 # 数据太少，返回中等值
+    type = -1 if lobj < val_list[0] else 1
+    vv, tt = val_list.copy(), time_list.copy()
+    
+    threshold = abs(vv[-1] - lobj) / vv[-1] if vv[-1] != 0 else 999999999  
+    threshold /= len(time_list) * 5
+    threshold = min(threshold, 1e-2)
+
     for i in range(1, len(vv)):
-        vv[i] = max(vv[i], vv[i - 1] + 1e-8)
+        gap_tmp = abs(vv[i] - lobj) / vv[i] if vv[i] != 0 else 999999999  
+        vv[i] = min(gap_tmp, vv[i - 1] - threshold)
+
+    for i in range(len(vv)):
+        vv[i] = -vv[i]
         
-    pchip = PchipInterpolator(val_list, time_list)    
-    stime = pchip(lobj)
-    if stime > 1e6:
-        stime = 1e6
-    if stime < 0.1:
-        stime = 0.1
-    stime = math.log(stime) # -1 到 6
-    return (stime + 1) / 7 # 越小越好
+    import pandas as pd
+    data = pd.DataFrame({'x': time_list, 'y': vv})
+    reg = setup(data, target='y', session_id=123)
+    best_model = compare_models(fold=2 if len(time_list) < 10 else 5)
+    
+    tmp = pd.DataFrame({
+        'x': [1e10],
+    })
+    sgap = -predict_model(best_model, tmp)['prediction_label'][0]
+    sgap = max(sgap, 0)
+    
+    def g(x):
+        tmp = pd.DataFrame({
+            'x': [x],
+        })
+        return predict_model(best_model, tmp)['prediction_label'][0] + sgap * 1.05
+        
+    try:
+        stime = brentq(g, -1e5, 1e10)
+    except:
+        print("!!!!!!!!!!!!!!!!!!!!!!!!")
+        print(g(-1e5), g(1e10))
+        
+    weee = stime
+    assert stime < 1e10
+    assert stime > 0
+    stime = math.log(10 + stime) # 1 到 10.1
+    k = 0.01
+    return sgap, weee, 1 - math.exp(-k * sgap * 100), stime / 10.1 # 越小越好
 
 def imprate_c(time_list, val_list, lobj):
     if len(val_list) < 2:
-        return 1
+        return 0.5  # 数据太少，返回中等值
     total_time = time_list[-1] - time_list[0]
-    if total_time <= 0:
-        return 1
-    improve = val_list[0] - val_list[-1]
-    rate = improve / total_time if total_time != 0 else 0
+    improve = abs(val_list[0] - val_list[-1])
+    rate = improve / total_time
     norm_rate = 1 / (rate + 1e-5)  # 改进越快值越小
     norm_rate = min(norm_rate, 10)
     return norm_rate / 10  # 越小越好
@@ -176,7 +214,7 @@ def trend_c(time_list, val_list, lobj):
     return 1 - trend_ratio  # 越小越好
 
 #TODO:不严格单调的噢!
-#TODO:check求解的稳定性
+#TODO:求解的稳定性指标?
 
 def calc(data, lobj):
     # 最终gap
@@ -185,22 +223,39 @@ def calc(data, lobj):
     time_list = [_[0] for _ in result_list]
     val_list = [_[1] for _ in result_list]
     
-    ll1 = [gapstart_c(time_list, val_list, lobj), 
-          gapend_c(time_list, val_list, lobj), 
-          ir_c(time_list, val_list, lobj),
-          nr_c(time_list, val_list, lobj),
-          stime_c(time_list, val_list, lobj),
-          imprate_c(time_list, val_list, lobj),
-          stability_c(time_list, val_list, lobj),
-          earlygap_c(time_list, val_list, lobj),
-          trend_c(time_list, val_list, lobj),
+    gapstartori, gapstart = gapstart_c(time_list, val_list, lobj)
+    gapendori, gapend = gapend_c(time_list, val_list, lobj)
+    irori, ir = ir_c(time_list, val_list, lobj)
+    nrori, nr = nr_c(time_list, val_list, lobj)
+    sgapori, stimeori, sgap, stime = sgap_stime_c(time_list, val_list, lobj)
+    
+    ll0 = [
+        gapstartori,
+        gapendori,
+        irori,
+        nrori,
+        stimeori,
+        sgapori,
+    ]
+    
+    ll1 = [ gapstart,
+            gapend,
+            ir,
+            nr,
+            stime,
+            sgap,
+#          imprate_c(time_list, val_list, lobj),
+#          stability_c(time_list, val_list, lobj),
+#          earlygap_c(time_list, val_list, lobj),
+#          trend_c(time_list, val_list, lobj),
           # TODO: 使用大模型指标
           ]
     ll2 = [0.05, 0.4, 0.15, 0.05, 0.15, 0.05, 0.05, 0.05, 0.05]
-    for i in range(len(ll1)):
-        ll1[i] *= ll2[i]
-        ll1[i] /= 0.4  
-    return ll1
+ #   for i in range(len(ll1)):
+#        ll1[i] = 1 - (1 - ll1[i]) * ll2[i] / 0.4
+ #       print(ll1[i])
+ #       ll1[i] /= 2
+    return ll0, ll1
 
 
     # TODO:加入更多指标
@@ -214,7 +269,11 @@ def run():
     scores = {}
 
 
+    ssssss = 0
     for instance in instancelis:
+        if ssssss >= 5:
+            break
+        ssssss += 1
         lobj, type_ = work_gurobi(instance)
         now_score = {}
         for gr in grlis:
@@ -284,7 +343,8 @@ def eval():
                     cnt = 0
                     sum = 0
                     for instance in instancelis:
-                        
+                        if cnt >= 5:
+                            break    
                         instance_name = os.path.basename(instance)
                         tmp = re.match(r"(.*)\.lp", instance_name)
                         tmp = tmp.group(1)
@@ -296,16 +356,19 @@ def eval():
 
                         with open(des, 'r') as f:
                             data = json.load(f)
-                        LIS = calc(data, lobj)
-                        sum = sum + calc_api([LIS])
-                    
-                    if cnt != 10:
+                        LISORI, LIS = calc(data, lobj)
+                        data['indicatorsori'] = LISORI
+                        data['indicators'] = LIS
+                        ttttt = calc_api([LIS])
+                        sum = sum + ttttt
+                        data['score'] = ttttt
+                        with open(des, 'w') as f:
+                            json.dump(data, f, indent=4)
+                        
+                    if cnt != 5:
                         continue
                     
-                    if cnt == 0:
-                        result_list.append((we, sum))
-                    else:
-                        result_list.append((we, sum / cnt))
+                    result_list.append((we, sum / cnt))
 
     instance_name = os.path.basename(instance)
     tmp = re.match(r"(.*)_[0-9]+\.lp", instance_name)

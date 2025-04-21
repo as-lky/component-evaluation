@@ -365,7 +365,7 @@ def train(epoch, num):
     else:
         loss_select = 0
     loss_func = torch.nn.MSELoss()
-    loss = loss_func(output[new_idx_train], torch.tensor(np.array(optimal_solution))[new_idx_train]) + loss_select
+    loss = loss_func(output[new_idx_train], torch.tensor(np.array(optimal_solution))[new_idx_train].float()) + loss_select
 
     return loss
 

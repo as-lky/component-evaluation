@@ -163,7 +163,7 @@ class SpGAT(nn.Module):
         
         self.select_module = torch.nn.Sequential(
             torch.nn.Linear(embed_size, embed_size),
-            #torch.nn.LogSoftmax(dim = 0),
+        #torch.nn.LogSoftmax(dim = 0),
             torch.nn.ReLU(),
             torch.nn.Linear(embed_size, embed_size),
             #torch.nn.LogSoftmax(dim = 0),
@@ -199,8 +199,8 @@ class SpGAT(nn.Module):
         x = self.out_att_v_to_u(x, edgeB, new_edge)
         new_edge_ = torch.mean(new_edge_, dim = 1).reshape(new_edge_.size()[0], 1)
 
-        x = self.output_module(x)
         y = self.select_module(x)
+        x = self.output_module(x)
 #        x = self.softmax(x)
 
-        return x, y, new_edge_
+        return x.squeeze(-1), y.squeeze(-1), new_edge_
