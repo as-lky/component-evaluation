@@ -9,9 +9,8 @@ import subprocess
 import json
 import shutil
 import math
-from scipy.optimize import brentq
-from pycaret.regression import *
-
+import numpy as np
+from scipy.optimize import curve_fit, brentq
 
 # python eval.py --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/
 
@@ -49,6 +48,11 @@ def work_gurobi(instance):
     
 instance_path = args.instance_path
 train_data_dir = args.train_data_dir
+
+# grlis = ["bi"]
+# prelis = ["gcn"]
+# modlis = ["nr"]
+# sealis = ["LNS"]
 
 grlis = ["bi", "bir", "tri", "trir", "default"]
 prelis = ["gcn", "gurobi", "scip"]
@@ -104,7 +108,7 @@ def ir_c(time_list, val_list, lobj): # 改进比率
     if ir > 99990:
         ir = 99990
     # 差距可能很大！
-    a = math.log(ir + 10) # 1 到 5
+    a = math.log10(ir + 10) # 1 到 5
     a = 1 - a / 5
     return ir, a # 越小越好
 
@@ -115,7 +119,7 @@ def nr_c(time_list, val_list, lobj): # 求解的有效率
             num += 1
     nr = num / len(val_list) 
     if num == 0: 
-        nr = 0.5 / len(val_list)
+        nr = 0.0001
     return num / len(val_list), 1 - nr # 越小越好
 
 def sgap_stime_c(time_list, val_list, lobj): # 预估收敛gap & 收敛到预估收敛gap一定范围内的预估收敛时间
@@ -126,37 +130,119 @@ def sgap_stime_c(time_list, val_list, lobj): # 预估收敛gap & 收敛到预估
     
     threshold = abs(vv[-1] - lobj) / vv[-1] if vv[-1] != 0 else 999999999  
     threshold /= len(time_list) * 5
-    threshold = min(threshold, 1e-2)
+    threshold = min(threshold, 1e-8)
 
+    vv[0] = abs(vv[0] - lobj) / vv[0] if vv[0] != 0 else 999999999
     for i in range(1, len(vv)):
         gap_tmp = abs(vv[i] - lobj) / vv[i] if vv[i] != 0 else 999999999  
         vv[i] = min(gap_tmp, vv[i - 1] - threshold)
 
     for i in range(len(vv)):
         vv[i] = -vv[i]
-        
-    import pandas as pd
-    data = pd.DataFrame({'x': time_list, 'y': vv})
-    reg = setup(data, target='y', session_id=123)
-    best_model = compare_models(fold=2 if len(time_list) < 10 else 5)
     
-    tmp = pd.DataFrame({
-        'x': [1e10],
-    })
-    sgap = -predict_model(best_model, tmp)['prediction_label'][0]
-    sgap = max(sgap, 0)
     
-    def g(x):
-        tmp = pd.DataFrame({
-            'x': [x],
-        })
-        return predict_model(best_model, tmp)['prediction_label'][0] + sgap * 1.05
+    GAP = -1
+    for i in range(len(tt) - 1):
+        if abs(vv[i + 1] - vv[i]) / abs(vv[i + 1]) > 3:
+           GAP = i 
+    print(val_list, GAP)
+    print(vv)
+
+    tt = tt[(GAP + 1):-1]
+    vv = vv[(GAP + 1):-1]
+    
+    # def poly2(x, a, b, c):
+    #     return a * x ** 2 + b * x + c
+
+    # def poly3(x, a, b, c, d):
+    #     return a * x ** 3 + b * x ** 2 + c * x + d
+
+    # def exp_func(x, a, b, c):
+    #     return a * np.exp(b * x) + c
+
+    # def log_func(x, a, b, c):
+    #     return a * np.log(b * x) + c
+
+    def func(x, b, c):
+        return b * np.exp(c * x)
+    popt, _ = curve_fit(func, tt, vv, maxfev=10000, bounds=([-np.inf, -np.inf], [0, np.inf]))
+    for i in range(len(tt)):
+        print(i, tt[i], vv[i], func(tt[i], *popt))
+    print(func(1000, *popt))
+    return 0, 0
+    # funcs = {
+    #     "poly2": poly2,
+    #     "poly3": poly3,
+    #     "exp": exp_func,
+    #     "log": log_func
+    # }
+    
+    # results = {}
+    # for name, func in funcs.items():
+    #     bounds = (-np.inf, np.inf)
         
+    #     if name == "log":
+    #         bounds = ([-np.inf, 1e-8, -np.inf], [np.inf, np.inf, np.inf])
+            
+    #     popt, _ = curve_fit(func, tt, vv, maxfev=10000, bounds=bounds)
+    #     fitted_vals = func(np.array(tt), *popt)
+    #     r2 = r2_score(vv, fitted_vals)
+    #     results[name] = (func, popt, r2)
+    
+    # mmax = -9999999
+    # best = None
+    # for name, _ in results.items():
+    #     if mmax < results[name][2]:
+    #         mmax = results[name][2]
+    #         best = results[name]
+
+    # for i in range(len(tt)):
+    #     print(i, tt[i], vv[i], best[0](time_list[i], *best[1]))
+    # for i in range(8):
+    #     print(i, 10 ** i, best[0](10 ** i, *best[1]))
+    #     print(-i, -10 ** i, best[0](-10 ** i, *best[1]))
+
+    # import pandas as pd
+    # data = pd.DataFrame({'x': time_list, 'y': vv})
+    # reg = setup(data, target='y', session_id=123)
+    # best_model = compare_models(fold=5)
+    
+    # tmp = pd.DataFrame({
+    #     'x': [1e10],
+    # })
+    # sgap = -predict_model(best_model, tmp)['prediction_label'][0]
+    # sgap = max(sgap, 0)
+    
+    # def g(x):
+    #     tmp = pd.DataFrame({
+    #         'x': [x],
+    #     })
+    #     return predict_model(best_model, tmp)['prediction_label'][0] + sgap * 1.05
+        
+    # for i in range(len(tt)):
+    #     tmp = pd.DataFrame({
+    #         'x': [tt[i]],
+    #     })
+    #     print(i, tt[i], vv[i], predict_model(best_model, tmp)['prediction_label'][0])
+
+    # for i in range(10):
+    #     tmp = pd.DataFrame({
+    #         'x': [-10**i],
+    #     })
+    #     print(-10**i, predict_model(best_model, tmp)['prediction_label'][0])
+
+    # for i in range(10):
+    #     tmp = pd.DataFrame({
+    #         'x': [10**i],
+    #     })
+    #     print(10**i, predict_model(best_model, tmp)['prediction_label'][0])
+
+
     try:
-        stime = brentq(g, -1e5, 1e10)
+        stime = brentq(g, -1e10, 1e10)
     except:
         print("!!!!!!!!!!!!!!!!!!!!!!!!")
-        print(g(-1e5), g(1e10))
+        print(g(-1e10), g(1e10))
         
     weee = stime
     assert stime < 1e10
@@ -164,6 +250,46 @@ def sgap_stime_c(time_list, val_list, lobj): # 预估收敛gap & 收敛到预估
     stime = math.log(10 + stime) # 1 到 10.1
     k = 0.01
     return sgap, weee, 1 - math.exp(-k * sgap * 100), stime / 10.1 # 越小越好
+
+def stime_c(time_list, val_list, lobj): # 收敛到收敛gap一定范围内的预估收敛时间
+    if len(val_list) < 5:
+        return 0.5 # 数据太少，返回中等值
+    vv, tt = val_list.copy(), time_list.copy()
+    
+    threshold = abs(vv[-1] - lobj) / vv[-1] if vv[-1] != 0 else 999999999  
+    threshold /= len(time_list) * 5
+    threshold = min(threshold, 1e-8)
+
+    vv[0] = abs(vv[0] - lobj) / vv[0] if vv[0] != 0 else 999999999
+    for i in range(1, len(vv)):
+        gap_tmp = abs(vv[i] - lobj) / vv[i] if vv[i] != 0 else 999999999  
+        vv[i] = min(gap_tmp, vv[i - 1] - threshold)
+
+    for i in range(len(vv)):
+        vv[i] = -vv[i]
+    
+    GAP = -1
+    for i in range(len(tt) - 1):
+        if abs(vv[i + 1] - vv[i]) / abs(vv[i + 1]) > 3:
+           GAP = i 
+
+    tt = tt[(GAP + 1):-1]
+    vv = vv[(GAP + 1):-1]
+    
+    def func(x, b, c):
+        return b * np.exp(c * x)
+    popt, _ = curve_fit(func, tt, vv, maxfev=10000, bounds=([-np.inf, -np.inf], [0, np.inf]))
+
+    def g(x):
+        return func(x, *popt) + 1e-5
+    
+    stime = brentq(g, -1e10, 1e10)
+    wwwww = stime
+    assert stime < 1e10
+    assert stime > 0
+    stime = math.log10(10 + stime) # 1 到 10.1
+    k = 0.01
+    return wwwww, stime / 10.1 # 越小越好
 
 def imprate_c(time_list, val_list, lobj):
     if len(val_list) < 2:
@@ -227,7 +353,8 @@ def calc(data, lobj):
     gapendori, gapend = gapend_c(time_list, val_list, lobj)
     irori, ir = ir_c(time_list, val_list, lobj)
     nrori, nr = nr_c(time_list, val_list, lobj)
-    sgapori, stimeori, sgap, stime = sgap_stime_c(time_list, val_list, lobj)
+#    sgapori, stimeori, sgap, stime = sgap_stime_c(time_list, val_list, lobj)
+    stimeori, stime = stime_c(time_list, val_list, lobj)
     
     ll0 = [
         gapstartori,
@@ -235,7 +362,7 @@ def calc(data, lobj):
         irori,
         nrori,
         stimeori,
-        sgapori,
+     #   sgapori,
     ]
     
     ll1 = [ gapstart,
@@ -243,7 +370,7 @@ def calc(data, lobj):
             ir,
             nr,
             stime,
-            sgap,
+      #      sgap,
 #          imprate_c(time_list, val_list, lobj),
 #          stability_c(time_list, val_list, lobj),
 #          earlygap_c(time_list, val_list, lobj),
@@ -320,7 +447,7 @@ def run():
     #     print(key, value)    
 
 def eval():
-    result_list = []
+    result_list = {}
     for gr in grlis:
         for pre in prelis:
             for mod in modlis:
@@ -339,12 +466,15 @@ def eval():
 #                        continue
                     
                     we = f"{gr}_{pre}_{mod}_{sea}_"
+                    print(we)
                     scores = 0
                     cnt = 0
                     sum = 0
+                    result_list_tmp = {}
                     for instance in instancelis:
                         if cnt >= 5:
                             break    
+                        print(instance)
                         instance_name = os.path.basename(instance)
                         tmp = re.match(r"(.*)\.lp", instance_name)
                         tmp = tmp.group(1)
@@ -353,7 +483,8 @@ def eval():
                             continue
                         cnt += 1
                         lobj, type_ = work_gurobi(instance)
-
+                        # if tmp[-1] != '6':
+                            # continue
                         with open(des, 'r') as f:
                             data = json.load(f)
                         LISORI, LIS = calc(data, lobj)
@@ -362,18 +493,16 @@ def eval():
                         ttttt = calc_api([LIS])
                         sum = sum + ttttt
                         data['score'] = ttttt
+                        result_list_tmp[f'{tmp}'] = LIS + [ttttt]
                         with open(des, 'w') as f:
                             json.dump(data, f, indent=4)
-                        
-                    if cnt != 5:
-                        continue
-                    
-                    result_list.append((we, sum / cnt))
-
+                    result_list_tmp['score'] = sum / cnt * 1e5
+                    result_list[we] = result_list_tmp
     instance_name = os.path.basename(instance)
     tmp = re.match(r"(.*)_[0-9]+\.lp", instance_name)
     tmp = tmp.group(1)
     des = f'./logs/work/{args.taskname}/{tmp}_result.txt'
+    result_list = dict(sorted(result_list.items(), key=lambda x: x[1]['score'], reverse=True))
     with open(des, 'w') as f:                
         json.dump(result_list, f, indent=4)
         

@@ -7,7 +7,8 @@ import pyscipopt
 import subprocess
 import pickle
 import random
-#import cplex
+import json
+import cplex
 from typing import Type, cast
 from .mod import Component, Graphencode2Predict, Predict2Modify, Cantsol, Cansol2M
 from .help.NEURALDIVING.test import GraphDataset
@@ -269,7 +270,7 @@ class GCN(Predict):
 #                                "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}"])    
  
             exec = ["python", "lib/help/NEURALDIVING/train.py", "--train_data_dir", f"{self.train_data_dir}",
-                   "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}"]
+                   "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--device", f"{self.device}"]
             if self.sequence_name[0][-1] == 'r':
                 exec.append("--random_feature")
             if self.sequence_name[0][0] == 't':
@@ -575,12 +576,11 @@ class GAT(Predict):
             if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}'):
                 os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
             
+            exet = ["python", "lib/help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
+                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}"]
             if self.sequence_name[0][-1] == 'r':
-                subprocess.run(["python", "lib/help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
-                                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--random_feature", "--no-cuda"])     #TODO: remove no-cuda
-            else:
-                subprocess.run(["python", "lib/help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
-                                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--no-cuda"])
+                exet.append("--random_feature")
+            subprocess.run(exet)
                 
             pathstr = model_path
             # train_data_dir + LP / Pickle    
@@ -661,7 +661,6 @@ class GAT(Predict):
             if(visit[i] == 0):
                 q = []
                 q.append(i)
-                visit[i] = 1
                 now = 0
                 while(now < len(q)):
                     order.append(q[now])
@@ -756,13 +755,9 @@ class GAT(Predict):
             #      "loss= {:.4f}".format(loss_test.data.item()))
             return(output, select, new_edge_feat)
 
-        predict = []
-        select = []
-        new_edge_feat = []
-        for i in range(n + m):
-            predict.append([])
-        for i in range(edge_num):
-            new_edge_feat.append(0)
+        predict = [0] * (n + m)
+        select = [0] * (n + m)
+        new_edge_feat = [0] * edge_num
         for i in range(partition_num):
             now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
             for j in range(len(color_site_to_num[i])):
@@ -772,6 +767,11 @@ class GAT(Predict):
             for j in range(len(color_edge_to_num[i])):
                 new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
+        with open("./caogao.txt", "w") as f:
+            json.load(predict)
+        with open("./caogao2.txt", "w") as f:
+            json.load(select)
+            
         self.end()
         return Cantsol(predict, select)
 

@@ -12,7 +12,7 @@ from lib.modify import Modify
 from lib.search import Search
 
 parser = argparse.ArgumentParser(description=" receive select instruction from higher level")
-parser.add_argument("--device", required=True, choices=["cpu", "cuda"], help="cpu or cuda")
+parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2"], help="cpu or cuda")
 parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")

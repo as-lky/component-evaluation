@@ -161,7 +161,11 @@ class Sr(Modify): # build a new problem based on the prediction
 
         time_limit = self.time_limit
 
-        new_select = torch.tensor(input.select).clone()
+        if type(input.select) == list:
+            select = torch.tensor(np.array(input.select))
+        else:
+            select = input.select.clone()
+        new_select = select.clone()
         new_select, _tmp = torch.sort(new_select)
 
         now_sol = input.logits
@@ -180,7 +184,7 @@ class Sr(Modify): # build a new problem based on the prediction
             if rate >= n :
                 rate = n - 1
             for i in range(n):
-                if(input.select[i] >= new_select[rate]):
+                if(select[i] >= new_select[rate]):
                     choose.append(0)
                 else:
                     choose.append(1)

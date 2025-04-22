@@ -2,3 +2,5 @@ Dataset
 /lky/Dataset
 /lky/Model
 /lky/logs
+*.lp
+*.pickle
