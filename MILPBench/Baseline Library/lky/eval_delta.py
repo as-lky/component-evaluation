@@ -17,11 +17,9 @@ from scipy.optimize import curve_fit, brentq
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
 parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
-parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
 args = parser.parse_args()
 
 instance_path = args.instance_path
-train_data_dir = args.train_data_dir
 
 instancelis = [os.path.join(instance_path, file) for file in os.listdir(instance_path)] # 30 instances
 score_dic = {}
@@ -82,6 +80,7 @@ for instance in INSLIST:
                 break
         if flag == 0:
             tmp.append(i)
+    print(tmp)
     if len(tmp) == 1:
         SCORES[tmp[0]] += calc_api([result_list[tmp[0]][instance][:-1]]) * 1e7
     else:
@@ -94,6 +93,7 @@ for instance in INSLIST:
             po.remove(result_list[i][instance][:-1])
             SCORES[i] += (score - calc_api(po)) * 1e7
             
+    break
 
 instance = instancelis[0]
 instance_name = os.path.basename(instance)

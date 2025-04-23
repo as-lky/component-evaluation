@@ -12,7 +12,8 @@ class Preprocess(Component): # no usage for now
         print('Preprocess Component is working ...')
         
         instance_name = os.path.basename(self.instance)
-        
+        tmp = re.match(r"(.*)_[0-9]+\.lp", instance_name)
+        tmp = tmp.group(1)
   #      sn = str(self.sequence_name)
         sn = ""
         for _ in self.sequence_name:
@@ -25,6 +26,8 @@ class Preprocess(Component): # no usage for now
             os.mkdir(f'./logs/work/{self.taskname}')
         if not os.path.isdir(f'./logs/work/{self.taskname}/{sn}'):
             os.mkdir(f'./logs/work/{self.taskname}/{sn}')
+        if not os.path.isdir(f'./logs/work/{self.taskname}/{sn}/{tmp}'):
+            os.mkdir(f'./logs/work/{self.taskname}/{sn}/{tmp}')
         
         print('Preprocess Component is done.')
         

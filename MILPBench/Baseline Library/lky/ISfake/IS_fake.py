@@ -55,7 +55,7 @@ def generate_and_save_lp_files(parameters, output_dir, num_instances=3, seed=42)
 
 if __name__ == "__main__":
     parameters = {
-        'n_nodes': 100000,
+        'n_nodes': 100,
         'edge_probability': 0.1,
         'affinity': 3,
         'graph_type': 'barabasi_albert',

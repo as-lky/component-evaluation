@@ -12,8 +12,8 @@ from lib.modify import Modify
 from lib.search import Search
 
 parser = argparse.ArgumentParser(description=" receive select instruction from higher level")
-parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2"], help="cpu or cuda")
-parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
+parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2", "cuda:1"], help="cpu or cuda")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "WA", "CA"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")
 
@@ -25,8 +25,10 @@ parser.add_argument("--predict_time_limit", type=int, help="time limit for predi
 # search for model firstly 
 
 parser.add_argument("--modify", required=True, choices=["sr", "nr", "np", "default"], help="modify component")
+parser.add_argument("--modify_time_limit", type=int, help="time limit for modifying")
 parser.add_argument("--search", required=True, choices=["gurobi", "scip", "LIH", "MIH", "LNS", "NALNS", "ACP"], help="search component")
 parser.add_argument("--search_time_limit", type=int, help="time limit for searching")
+parser.add_argument("--benchmark_path", type=str, help="benchmark path if use gurobi as benchmark")
 
 def get_sequence_name(args):
     return [args.graphencode, args.predict, args.modify, args.search]
@@ -42,8 +44,8 @@ if __name__ == "__main__":
     preprocess_component = Preprocess(args.device, args.taskname, args.instance_path, sequence_name)
     graphencode_component = Graphencode(args.graphencode, args.device, args.taskname, args.instance_path, sequence_name)
     predict_component = Predict(args.predict, args.device, args.taskname, args.instance_path, sequence_name, time_limit=args.predict_time_limit, train_data_dir=args.train_data_dir)
-    modify_component = Modify(args.modify, args.device, args.taskname, args.instance_path, sequence_name)
-    search_component = Search(args.search, args.device, args.taskname, args.instance_path, sequence_name, time_limit=args.search_time_limit)
+    modify_component = Modify(args.modify, args.device, args.taskname, args.instance_path, sequence_name, time_limit=args.modify_time_limit)
+    search_component = Search(args.search, args.device, args.taskname, args.instance_path, sequence_name, time_limit=args.search_time_limit, benchmark_path=args.benchmark_path)
     
     preprocess_component.work()
     now = graphencode_component.work()
@@ -66,7 +68,8 @@ if __name__ == "__main__":
         sn += _ + "_"
     tmp = re.match(r"(.*)\.lp", instance_name)
     tmp = tmp.group(1)
-    des = f'./logs/work/{args.taskname}/{sn}/{tmp}_result.txt'
+    tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
+    des = f'./logs/work/{args.taskname}/{sn}/{tmp_}/{tmp}_result.txt'
 
     result = {}
     result['gap'] = round(gap * 100, 4)

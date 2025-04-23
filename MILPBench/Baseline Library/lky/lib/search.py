@@ -4,6 +4,8 @@ import pyscipopt as scp
 import time
 import random
 import gurobipy as gp
+import pickle
+import re
 
 from .help.LIH.help import greedy_one as greedy_one_LIH, split_problem as split_problem_LIH
 from .help.MIH.help import greedy_one as greedy_one_MIH, split_problem as split_problem_MIH
@@ -377,6 +379,7 @@ class Gurobi(Search): # solver
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get('time_limit') or 10
         self.log = []
+        self.benchmark_path = kwargs.get('benchmark_path') or 0
         ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
@@ -400,7 +403,19 @@ class Gurobi(Search): # solver
 
         for _ in range(len(log)):
             result_list.append((result_list[0][0] + log[_][0], log[_][1]))
-    
+
+        if self.benchmark_path != 0:
+            
+            instance_name = os.path.basename(self.instance)
+            tmp = re.match(r"(.*)\.lp", instance_name)
+            tmp = tmp.group(1)
+            pickle_path = os.path.join(self.benchmark_path, tmp + '.pickle')
+            solution = {}
+            for var in model.getVars():
+                solution[var.VarName] = var.X
+            with open(pickle_path, 'wb') as f:
+                pickle.dump([solution, model.MIPGap], f)
+        
         self.end()
         
         return model.MIPGap, model.ObjVal, model.ModelSense # must be it!

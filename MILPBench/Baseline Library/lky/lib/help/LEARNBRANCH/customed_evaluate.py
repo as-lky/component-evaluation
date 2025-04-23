@@ -135,7 +135,7 @@ if __name__ == "__main__":
         device = 'cpu'
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = f'{args.gpu}'
-        device = f"cuda:0"
+        device = f"cuda"
 
     import torch
     from model.model import GNNPolicy

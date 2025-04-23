@@ -299,21 +299,21 @@ class GCN(Predict):
         if not os.path.exists(pk):
             if not tripartite:
                 constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2_gcn(self.instance, random_feature=True if self.sequence_name[0][-1] == 'r' else False)            
-                with open(solution_path, "rb") as f:
-                    solution = pickle.load(f)[0]
+                #with open(solution_path, "rb") as f:
+                #    solution = pickle.load(f)[0]
                 sol = []
-                for i in range(n):
-                    sol.append(solution[num_to_value[i]])
+                #for i in range(n):
+                #    sol.append(solution[num_to_value[i]])
                 with open(pk, "wb") as f:
                     pickle.dump([variable_features, constraint_features, edge_indices, edge_features, sol], f)
                     
             else :
                 constraint_features, edge_indices, edge_features, variable_features, num_to_value, n, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con = get_a_new3_gcn(self.instance, random_feature=True if self.sequence_name[0][-1] == 'r' else False)
-                with open(solution_path, "rb") as f:
-                    solution = pickle.load(f)[0]
+                #with open(solution_path, "rb") as f:
+                #    solution = pickle.load(f)[0]
                 sol = []
-                for i in range(n):
-                    sol.append(solution[num_to_value[i]])
+                #for i in range(n):
+                #    sol.append(solution[num_to_value[i]])
                 
                 with open(pk, "wb") as f:
                     pickle.dump([variable_features, constraint_features, edge_indices, edge_features, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con, sol], f)
@@ -576,11 +576,11 @@ class GAT(Predict):
             if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}'):
                 os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
             
-            exet = ["python", "lib/help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
-                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}"]
+            exec = ["python", "lib/help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
+                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--device", f"{self.device}", "--lr", "1e-4", "--alpha", "2e-3", "--no-cuda"]
             if self.sequence_name[0][-1] == 'r':
-                exet.append("--random_feature")
-            subprocess.run(exet)
+                exec.append("--random_feature")
+            subprocess.run(exec)
                 
             pathstr = model_path
             # train_data_dir + LP / Pickle    
@@ -767,12 +767,11 @@ class GAT(Predict):
             for j in range(len(color_edge_to_num[i])):
                 new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
-        with open("./caogao.txt", "w") as f:
-            json.load(predict)
-        with open("./caogao2.txt", "w") as f:
-            json.load(select)
-            
         self.end()
+        for i in range(100):
+            print("P", i, predict[i])
+        for i in range(100):
+            print("S", i, select[i])
         return Cantsol(predict, select)
 
 class GTRAN(Predict):

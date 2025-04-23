@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit, brentq
 # python eval.py --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/
 
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
-parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "WA", "CA"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
 parser.add_argument("--eval", action="store_true", help="exec eval func")
@@ -32,12 +32,13 @@ def work_gurobi(instance):
     instance_name = os.path.basename(instance)
     tmp = re.match(r"(.*)\.lp", instance_name)
     tmp = tmp.group(1)
+    tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
    
-    if not os.path.exists(f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp}_result.txt'):
+    if not os.path.exists(f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'):
         subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
         "--graphencode", "default", "--predict", "gurobi", "--predict_time_limit", "60", "--modify", "default", "--search", "gurobi"])    
     
-    des = f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp}_result.txt'
+    des = f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'
     with open(des, 'r') as f:
         data = json.load(f)
     
@@ -115,7 +116,7 @@ def ir_c(time_list, val_list, lobj): # 改进比率
 def nr_c(time_list, val_list, lobj): # 求解的有效率
     num = 0
     for _ in val_list:
-        if abs(_ - lobj) / lobj < 0.001:
+        if abs(_ - lobj) / lobj < 0.05:
             num += 1
     nr = num / len(val_list) 
     if num == 0: 
@@ -124,7 +125,7 @@ def nr_c(time_list, val_list, lobj): # 求解的有效率
 
 def sgap_stime_c(time_list, val_list, lobj): # 预估收敛gap & 收敛到预估收敛gap一定范围内的预估收敛时间
     if len(val_list) < 2:
-        return 0.5 # 数据太少，返回中等值
+        return -1, 0.5 # 数据太少，返回中等值
     type = -1 if lobj < val_list[0] else 1
     vv, tt = val_list.copy(), time_list.copy()
     
@@ -253,12 +254,12 @@ def sgap_stime_c(time_list, val_list, lobj): # 预估收敛gap & 收敛到预估
 
 def stime_c(time_list, val_list, lobj): # 收敛到收敛gap一定范围内的预估收敛时间
     if len(val_list) < 5:
-        return 0.5 # 数据太少，返回中等值
+        return -1, 0.5 # 数据太少，返回中等值
     vv, tt = val_list.copy(), time_list.copy()
     
     threshold = abs(vv[-1] - lobj) / vv[-1] if vv[-1] != 0 else 999999999  
     threshold /= len(time_list) * 5
-    threshold = min(threshold, 1e-8)
+    threshold = min(threshold, 1e-2)
 
     vv[0] = abs(vv[0] - lobj) / vv[0] if vv[0] != 0 else 999999999
     for i in range(1, len(vv)):
@@ -278,12 +279,13 @@ def stime_c(time_list, val_list, lobj): # 收敛到收敛gap一定范围内的�
     
     def func(x, b, c):
         return b * np.exp(c * x)
-    popt, _ = curve_fit(func, tt, vv, maxfev=10000, bounds=([-np.inf, -np.inf], [0, np.inf]))
+    popt, _ = curve_fit(func, tt, vv, maxfev=10000, bounds=([-1e16, -1e16], [0, 1e16]))
 
     def g(x):
         return func(x, *popt) + 1e-5
     
     stime = brentq(g, -1e10, 1e10)
+    print(stime)
     wwwww = stime
     assert stime < 1e10
     assert stime > 0
@@ -291,6 +293,25 @@ def stime_c(time_list, val_list, lobj): # 收敛到收敛gap一定范围内的�
     k = 0.01
     return wwwww, stime / 10.1 # 越小越好
 
+def yxtime_c(time_list, val_list, lobj): # 第一个有效解和特优解的时间
+    cnt = 0
+    for _ in val_list:
+        if abs(_ - lobj) / lobj < 0.05:
+            break
+        cnt += 1
+    ans1 = time_list[cnt] if cnt < len(time_list) else 99999990
+    ans1g = math.log10(10 + ans1) # 1 到 8
+    ans1g = ans1g / 20
+    cnt = 0
+    for _ in val_list:
+        if abs(_ - lobj) / lobj < 0.001:
+            break
+        cnt += 1
+    ans2 = time_list[cnt] if cnt < len(time_list) else 99999990
+    ans2g = math.log10(10 + ans2) # 1 到 8
+    ans2g = ans2g / 20
+    return ans1 + ans2, ans1g + ans2g # 越小越好
+    
 def imprate_c(time_list, val_list, lobj):
     if len(val_list) < 2:
         return 0.5  # 数据太少，返回中等值
@@ -355,13 +376,15 @@ def calc(data, lobj):
     nrori, nr = nr_c(time_list, val_list, lobj)
 #    sgapori, stimeori, sgap, stime = sgap_stime_c(time_list, val_list, lobj)
     stimeori, stime = stime_c(time_list, val_list, lobj)
+    yxtimeori, yxtime = yxtime_c(time_list, val_list, lobj)
     
     ll0 = [
         gapstartori,
         gapendori,
         irori,
         nrori,
-        stimeori,
+#        stimeori,
+        yxtimeori,
      #   sgapori,
     ]
     
@@ -369,7 +392,8 @@ def calc(data, lobj):
             gapend,
             ir,
             nr,
-            stime,
+#            stime,
+            yxtime,
       #      sgap,
 #          imprate_c(time_list, val_list, lobj),
 #          stability_c(time_list, val_list, lobj),
@@ -471,16 +495,20 @@ def eval():
                     cnt = 0
                     sum = 0
                     result_list_tmp = {}
+                    INSLIST = ["0", "1", "5", "6", "8"]
                     for instance in instancelis:
-                        if cnt >= 5:
-                            break    
-                        print(instance)
                         instance_name = os.path.basename(instance)
                         tmp = re.match(r"(.*)\.lp", instance_name)
                         tmp = tmp.group(1)
-                        des = f'./logs/work/{args.taskname}/{we}/{tmp}_result.txt'
+                        weee = re.match(r".*([0-9]+)", tmp).group(1)
+                        if weee not in INSLIST:
+                            continue
+                        tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
+                        des = f'./logs/work/{args.taskname}/{we}/{tmp_}/{tmp}_result.txt'
+                        print(des)
                         if not os.path.exists(des):
                             continue
+                        print(instance)
                         cnt += 1
                         lobj, type_ = work_gurobi(instance)
                         # if tmp[-1] != '6':
@@ -490,13 +518,16 @@ def eval():
                         LISORI, LIS = calc(data, lobj)
                         data['indicatorsori'] = LISORI
                         data['indicators'] = LIS
-                        ttttt = calc_api([LIS])
+                        ttttt = calc_api([LIS]) * 1e7
                         sum = sum + ttttt
                         data['score'] = ttttt
                         result_list_tmp[f'{tmp}'] = LIS + [ttttt]
                         with open(des, 'w') as f:
                             json.dump(data, f, indent=4)
-                    result_list_tmp['score'] = sum / cnt * 1e5
+#                    assert cnt == 5
+                    if cnt == 0:
+                        continue
+                    result_list_tmp['score'] = sum / cnt
                     result_list[we] = result_list_tmp
     instance_name = os.path.basename(instance)
     tmp = re.match(r"(.*)_[0-9]+\.lp", instance_name)

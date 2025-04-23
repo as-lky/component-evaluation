@@ -173,13 +173,15 @@ parser.add_argument('--nb_heads', type=int, default=6, help='Number of head atte
 parser.add_argument('--dropout', type=float, default=0.5, help='Dropout rate (1 - keep probability).')
 parser.add_argument('--alpha', type=float, default=0.2, help='Alpha for the leaky_relu.')
 parser.add_argument('--patience', type=int, default=20, help='Patience')
+parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to use for training.") 
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 #print(torch.cuda.is_available())
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #device = torch.device("cpu")
+device = args.device
 
 random.seed(args.seed)
 np.random.seed(args.seed)
@@ -312,6 +314,7 @@ model = SpGAT(nfeat=data_features[0].shape[1],    # Feature dimension
             dropout=args.dropout,         # Dropout
             nheads=args.nb_heads,         # Number of heads
             alpha=args.alpha)             # LeakyReLU alpha coefficient
+
 
 optimizer = optim.Adam(model.parameters(),    
                        lr=args.lr,                        # Learning rate

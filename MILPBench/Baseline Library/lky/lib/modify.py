@@ -39,7 +39,7 @@ class Modify(Component):
 class Np(Modify): # build a new problem based on the prediction
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 10)
+        self.time_limit = kwargs.get("time_limit") or 10
         
         if taskname == "IP": 
             dhp = (400, 5, 1)
@@ -150,7 +150,7 @@ class Np(Modify): # build a new problem based on the prediction
 class Sr(Modify): # build a new problem based on the prediction
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 10)
+        self.time_limit = kwargs.get("time_limit") or 10
         
         # tackle parameters    
 
@@ -178,16 +178,15 @@ class Sr(Modify): # build a new problem based on the prediction
        
         result_pair = (0, 0, 0)
         add_flag = 0
-        for turn in range(11):
+        for turn2 in range(11):
+            turn = 10 - turn2
             choose = []
-            rate = (int)(0.1 * turn * n)
-            if rate >= n :
-                rate = n - 1
+            rate = (int)(0.1 * turn * (n - 1))
             for i in range(n):
                 if(select[i] >= new_select[rate]):
-                    choose.append(0)
-                else:
                     choose.append(1)
+                else:
+                    choose.append(0)
             #print(0.1 * turn, sum(choose) / n)
             flag, sol, obj, gap = Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, time_limit, obj_type, now_sol, choose, lower_bound, upper_bound, value_type)
             if(flag == 1):
@@ -220,7 +219,7 @@ class Sr(Modify): # build a new problem based on the prediction
 class Nr(Modify): # build a new problem based on the prediction
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        self.time_limit = kwargs.get("time_limit", 10)
+        self.time_limit = kwargs.get("time_limit") or 10
         
         # tackle parameters    
 
@@ -230,7 +229,10 @@ class Nr(Modify): # build a new problem based on the prediction
 
         color = np.zeros(n) # 1: discard
         
-        now_sol = input.logits.to('cpu').detach().numpy() 
+        if type(input.logits) == list:
+            now_sol = np.array(input.logits)
+        else:
+            now_sol = input.logits.to('cpu').detach().numpy() 
 
         for i in range(n):
             if(value_type[i] != 'C'):
