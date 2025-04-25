@@ -395,7 +395,8 @@ def test(
             now_sol[i] = max(now_sol[i], lower_bound[i])
 
         add_flag = 0 
-        for turn in range(11):
+        for turn2 in range(11):
+            turn = 10 - turn2
             choose = []
             rate = (int)(0.1 * turn * n)
             for i in range(n):

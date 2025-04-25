@@ -36,7 +36,7 @@ def work_gurobi(instance):
    
     if not os.path.exists(f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'):
         subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
-        "--graphencode", "default", "--predict", "gurobi", "--predict_time_limit", "60", "--modify", "default", "--search", "gurobi"])    
+        "--graphencode", "default", "--predict", "gurobi", "--predict_time_limit", "30", "--modify", "default", "--search", "gurobi", "--search_time_limit", "30"])    
     
     des = f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'
     with open(des, 'r') as f:
@@ -55,9 +55,10 @@ train_data_dir = args.train_data_dir
 # modlis = ["nr"]
 # sealis = ["LNS"]
 
-grlis = ["bi", "bir", "tri", "trir", "default"]
-prelis = ["gcn", "gurobi", "scip"]
-#prelis = ["gat"]
+#grlis = ["bi", "bir", "tri", "trir", "default"]
+#prelis = ["gcn", "gurobi", "scip"]
+grlis = ["bi", "bir"]
+prelis = ["gat"]
 modlis = ["sr", "nr", "np", "default"]
 sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
 #sealis = ["MIH", "LNS", "NALNS"]
@@ -417,16 +418,12 @@ def calc(data, lobj):
     
     
 def run():
-    scores = {}
-
-
-    ssssss = 0
+    INSLIST = ["0", "1", "5", "6", "8"]
     for instance in instancelis:
-        if ssssss >= 5:
-            break
-        ssssss += 1
-        lobj, type_ = work_gurobi(instance)
-        now_score = {}
+        instance_name = os.path.basename(instance)
+        weee = re.match(r".*([0-9]+)", instance_name).group(1)
+        if weee not in INSLIST:
+            continue
         for gr in grlis:
             for pre in prelis:
                 for mod in modlis:
@@ -443,7 +440,7 @@ def run():
                                 continue
                         we = f"{gr}_{pre}_{mod}_{sea}_"
                         
-                        subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
+                        subprocess.run(["python", "main.py", "--device", "cuda:2", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
                             "--graphencode", f"{gr}", "--predict", f"{pre}", "--predict_time_limit", "30", "--modify", f"{mod}", "--search", f"{sea}", "--search_time_limit", "30"])  # TODO: add error check  
                         
                         # instance_name = os.path.basename(instance)

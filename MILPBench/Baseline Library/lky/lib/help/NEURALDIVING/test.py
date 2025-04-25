@@ -88,9 +88,9 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
     for i in range(n):
         if(now_col[i] == 1):
             coeff += x[site_to_new[i]] * coefficient[i]
+            flag = 1
         else:
             coeff += now_sol[i] * coefficient[i]
-            flag = 1
     
     if flag == 1:
         if(obj_type == 'maximize'):

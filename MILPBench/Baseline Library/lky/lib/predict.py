@@ -60,6 +60,8 @@ class Gurobi(Predict): # TODO: 找到解立刻停止
         model = gp.read(self.instance)
         model.setParam('TimeLimit', self.time_limit)
         model.optimize()
+        print(model.ModelSense)
+        print("+++++++++++++++++++++++++++++++++++")
         for var in model.getVars():
             cansol[var.VarName] = var.X
         

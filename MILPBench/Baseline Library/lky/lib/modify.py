@@ -61,7 +61,11 @@ class Np(Modify): # build a new problem based on the prediction
         self.begin()
         
         constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value=get_a_new2(self.instance)
-        select = input.select.to('cpu').detach().numpy() 
+
+        if type(input.select) == list:
+            select = np.array(input.select)
+        else:
+            select = input.select.to('cpu').detach().numpy() 
 
         scores = []
         for i in range(n):

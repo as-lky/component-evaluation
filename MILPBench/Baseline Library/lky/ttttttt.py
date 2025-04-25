@@ -1,21 +1,32 @@
 import os
 import re
 #folder = 'Dataset/IS_test_instance/IS_test_instance/LP' 
-folder = 'logs/work/IS'
-dirs = os.listdir(folder)
-for dir in dirs:
-    if not os.path.isdir(os.path.join(folder, dir)):
-        continue
-    files = os.listdir(os.path.join(folder, dir))
-    for file in files:
-        if os.path.isdir(os.path.join(folder, dir, file)):
-            continue
-        tmp = re.match(r"(.*)_[0-9].*", file)
-        tmp = tmp.group(1)
-        if not os.path.exists(os.path.join(folder, dir, tmp)):
-            os.makedirs(os.path.join(folder, dir, tmp))
-        os.rename(os.path.join(folder, dir, file), os.path.join(folder, dir, tmp, file))
-    print(dir)
+#folder = 'logs/work/IS'
+folder = 'Dataset/MIKS_medium_instance/MIKS_medium_instance/LP'
+
+files = os.listdir(folder)
+for file in files:
+    print(file)
+    lines = []
+    with open(os.path.join(folder, file), 'r') as f:
+        lines = f.readlines()
+    lines[1] = 'Minimize\n'
+    with open(os.path.join(folder, file), 'w') as f:
+        for line in lines:
+            f.write(line)
+# for dir in dirs:
+#     if not os.path.isdir(os.path.join(folder, dir)):
+#         continue
+#     files = os.listdir(os.path.join(folder, dir))
+#     for file in files:
+#         if os.path.isdir(os.path.join(folder, dir, file)):
+#             continue
+#         tmp = re.match(r"(.*)_[0-9].*", file)
+#         tmp = tmp.group(1)
+#         if not os.path.exists(os.path.join(folder, dir, tmp)):
+#             os.makedirs(os.path.join(folder, dir, tmp))
+#         os.rename(os.path.join(folder, dir, file), os.path.join(folder, dir, tmp, file))
+#     print(dir)
 # for filename in files:
 #     old_path = os.path.join(folder, filename)
 # #    new_filename = "IS_fakemedium_" + filename
