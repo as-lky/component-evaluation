@@ -30,7 +30,7 @@ class Preprocess2Graphencode(LayerConvey):
     def __init__(self):
         ...
         
-class Graphencode2Predict(LayerConvey): # TODO : no generalization
+class Graphencode2Predict(LayerConvey):
     def __init__(self, constraint_features, edge_indices, edge_features, variable_features, obj_features=None, obj_variable_val=None, obj_constraint_val=None, edge_obj_var=None, edge_obj_con=None):
         self.constraint_features = constraint_features
         self.edge_indices = edge_indices

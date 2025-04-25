@@ -11,7 +11,6 @@ torch.backends.cudnn.benchmark = True
 #4 public datasets, IS, WA, CA, IP
 #'Cut', 'MIPlib', 'vary_matrix_rhs_bounds_obj_s1', 'vary_matrix_rhs_bounds_s1', 'vary_matrix_s1', 'vary_obj_s1', 'vary_obj_s2', 'vary_obj_s3', 'vary_rhs_obj_s1', 'vary_rhs_obj_s2', 'vary_rhs_s1', 'vary_rhs_s2', 'vary_rhs_s3', 'vary_rhs_s4'
 
-# TODO: update api 
 
 parser = argparse.ArgumentParser(description="receive train instruction from predict component")
 parser.add_argument("--device", required=True, choices=["cpu", "cuda"], help="cpu or cuda")

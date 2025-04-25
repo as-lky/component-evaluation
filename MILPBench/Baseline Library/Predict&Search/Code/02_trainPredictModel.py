@@ -35,7 +35,7 @@ WEIGHT_NORM=100
 DEVICE = torch.device("cuda:1")
 DEVICE = torch.device("cpu")
 
-DIR_BG = f'./dataset/{TaskName}/BG' # TODO: check
+DIR_BG = f'./dataset/{TaskName}/BG' 
 DIR_SOL = f'./dataset/{TaskName}/solution'
 sample_names = os.listdir(DIR_BG)
 sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('bg','sol')) for name in sample_names]

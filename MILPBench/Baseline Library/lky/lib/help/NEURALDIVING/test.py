@@ -98,6 +98,7 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
         else:
             model.setObjective(coeff, GRB.MINIMIZE)
                     
+        model.setParam('SolutionLimit', 1)
         model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
         model.optimize()
         #print(time.time() - begin_time)

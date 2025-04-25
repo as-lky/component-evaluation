@@ -143,7 +143,7 @@ for now_data in range(data_num):
         if(optimal_solution[i] == 0):
             labels.append([1, 0])
         else:
-            labels.append([0, 1])
+            labels.append([0, 1])   
     labels = torch.tensor(labels)
 
     labels = torch.as_tensor(optimal_solution)

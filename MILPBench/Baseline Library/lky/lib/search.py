@@ -99,8 +99,7 @@ class LIH(Search):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
 
         self.end()
- #       return now_gap # TODO: modify return
-        return 0, 0, 0 # TODO: modify return
+        return 0, 0, 0 
 
  
 class MIH(Search):
@@ -157,9 +156,8 @@ class MIH(Search):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
 
         self.end()
-        #return now_gap, now_sol # TODO: modify return
-        return 0, 0, 0 # TODO: modify return
-
+        return 0, 0, 0 
+    
 class LNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
@@ -191,7 +189,7 @@ class LNS(Search):
         print(f"Initial objective: {ans}")
                 
         begin_time = time.time()
-        GAP = input.gap  # TODO : check LNS gap
+        GAP = input.gap
         
         now_sol, now_time = [], []
         
@@ -308,8 +306,7 @@ class LNS(Search):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
 
         self.end()
-#        return GAP, ans # TODO: modify return
-        return 0, 0, 0 # TODO: modify return
+        return 0, 0, 0 
 
 
 class NALNS(Search):
@@ -370,8 +367,7 @@ class NALNS(Search):
 
         self.end()
         
-#        return now_gap, now_sol # TODO: modify return
-        return 0, 0, 0 # TODO: modify return
+        return 0, 0, 0 
 
 class Gurobi(Search): # solver
     
@@ -634,9 +630,7 @@ class ACP(Search): # solver
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
 
         self.end()
-#        return ans, ans
-        return 0, 0, 0 # TODO: modify return
-    
+        return 0, 0, 0  
         
 class SCIP(Search): # solver
     
@@ -667,4 +661,4 @@ class SCIP(Search): # solver
         self.end()
 
 #        return model.getGap(), model.getObjVal()
-        return 0, 0, 0 # TODO: modify return
+        return 0, 0, 0

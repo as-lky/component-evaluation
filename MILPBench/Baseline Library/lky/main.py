@@ -16,6 +16,7 @@ parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2",
 parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")
+parser.add_argument("--whole_time_limit", type=int, help="time limit for whole process")
 
 # log?
 parser.add_argument("--graphencode", required=True, choices=["bi", "tri", "bir", "trir", "default"], help="graph encode component")
@@ -51,19 +52,26 @@ if __name__ == "__main__":
     args = parser.parse_args()
     sequence_name = get_sequence_name(args)
     instance_name = os.path.basename(args.instance_path)
+    whole_time_limit = args.whole_time_limit
     preprocess_component = Preprocess(args.device, args.taskname, args.instance_path, sequence_name)
     graphencode_component = Graphencode(args.graphencode, args.device, args.taskname, args.instance_path, sequence_name)
     predict_component = Predict(args.predict, args.device, args.taskname, args.instance_path, sequence_name, time_limit=args.predict_time_limit, train_data_dir=args.train_data_dir)
     modify_component = Modify(args.modify, args.device, args.taskname, args.instance_path, sequence_name, time_limit=args.modify_time_limit)
     search_component = Search(args.search, args.device, args.taskname, args.instance_path, sequence_name, time_limit=args.search_time_limit, benchmark_path=args.benchmark_path, block=args.search_ACP_block)
+    
 
     preprocess_component.work()
     now = graphencode_component.work()
+    if whole_time_limit is not None:
+        predict_component.time_limit = whole_time_limit - (time.time() - start_time)      
     now = predict_component.work(now)
+    if whole_time_limit is not None:
+        modify_component.time_limit = whole_time_limit - (time.time() - start_time)      
     now = modify_component.work(now)
     
     result_list_obj_time.append((time.time() - start_time, now.objval))    
-
+    if whole_time_limit is not None:
+       search_component.time_limit = whole_time_limit - (time.time() - start_time)      
     now = search_component.work(now, result_list_obj_time)
 
     # now : gap, obj, type

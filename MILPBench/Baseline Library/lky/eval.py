@@ -15,9 +15,10 @@ from scipy.optimize import curve_fit, brentq
 # python eval.py --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/
 
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
-parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "WA", "CA"], help="taskname")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
+parser.add_argument("--task", type=str, help="eval run task")
 parser.add_argument("--eval", action="store_true", help="exec eval func")
 args = parser.parse_args()
 
@@ -36,7 +37,7 @@ def work_gurobi(instance):
    
     if not os.path.exists(f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'):
         subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
-        "--graphencode", "default", "--predict", "gurobi", "--predict_time_limit", "30", "--modify", "default", "--search", "gurobi", "--search_time_limit", "30"])    
+        "--graphencode", "default", "--predict", "gurobi", "--modify", "default", "--search", "gurobi", "whole_time_limit", "100"])    
     
     des = f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'
     with open(des, 'r') as f:
@@ -50,17 +51,61 @@ def work_gurobi(instance):
 instance_path = args.instance_path
 train_data_dir = args.train_data_dir
 
+
+if args.task == "birgat":
+    grlis = ["bir"]
+    prelis = ["gat"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
+if args.task == "bigat":
+    grlis = ["bi"]
+    prelis = ["gat"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
+if args.task == "gurobisearch":
+    grlis = ["bi", "bir", "tri", "trir", "default"]
+    prelis = ["gcn", "gurobi", "scip"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["gurobi"]
+if args.task == "LIHsearch":
+    grlis = ["bi", "bir", "tri", "trir", "default"]
+    prelis = ["gcn", "gurobi", "scip"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["LIH"]
+if args.task == "MIHsearch":
+    grlis = ["bi", "bir", "tri", "trir", "default"]
+    prelis = ["gcn", "gurobi", "scip"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["MIH"]
+if args.task == "LNSsearch":
+    grlis = ["bi", "bir", "tri", "trir", "default"]
+    prelis = ["gcn", "gurobi", "scip"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["LNS"]
+if args.task == "NALNSsearch":
+    grlis = ["bi", "bir", "tri", "trir", "default"]
+    prelis = ["gcn", "gurobi", "scip"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["NALNS"]
+if args.task == "ACPsearch":
+    grlis = ["bi", "bir", "tri", "trir", "default"]
+    prelis = ["gcn", "gurobi", "scip"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["ACP"]
+    
+
 # grlis = ["bi"]
 # prelis = ["gcn"]
 # modlis = ["nr"]
 # sealis = ["LNS"]
 
-#grlis = ["bi", "bir", "tri", "trir", "default"]
-#prelis = ["gcn", "gurobi", "scip"]
-grlis = ["bi", "bir"]
-prelis = ["gat"]
-modlis = ["sr", "nr", "np", "default"]
-sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
+# grlis = ["bi", "bir", "tri", "trir", "default"]
+# prelis = ["gcn", "gurobi", "scip"]
+# #grlis = ["bi"]
+# #prelis = ["gat"]
+# modlis = ["sr", "nr", "np", "default"]
+# #sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
+# sealis = ["ACP"]
 #sealis = ["MIH", "LNS", "NALNS"]
 
 instancelis = [os.path.join(instance_path, file) for file in os.listdir(instance_path) if c(file)] # 10 instances
@@ -418,7 +463,7 @@ def calc(data, lobj):
     
     
 def run():
-    INSLIST = ["0", "1", "5", "6", "8"]
+    INSLIST = ["0", "1", "2"]
     for instance in instancelis:
         instance_name = os.path.basename(instance)
         weee = re.match(r".*([0-9]+)", instance_name).group(1)
@@ -441,7 +486,7 @@ def run():
                         we = f"{gr}_{pre}_{mod}_{sea}_"
                         
                         subprocess.run(["python", "main.py", "--device", "cuda:2", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
-                            "--graphencode", f"{gr}", "--predict", f"{pre}", "--predict_time_limit", "30", "--modify", f"{mod}", "--search", f"{sea}", "--search_time_limit", "30"])  # TODO: add error check  
+                            "--graphencode", f"{gr}", "--predict", f"{pre}", "--modify", f"{mod}", "--search", f"{sea}", "--whole_time_limit", "100"])  # TODO: add error check  
                         
                         # instance_name = os.path.basename(instance)
                         # tmp = re.match(r"(.*)\.lp", instance_name)

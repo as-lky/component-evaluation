@@ -59,9 +59,8 @@ class Gurobi(Predict): # TODO: 找到解立刻停止
         
         model = gp.read(self.instance)
         model.setParam('TimeLimit', self.time_limit)
+        model.setParam('SolutionLimit', 1)
         model.optimize()
-        print(model.ModelSense)
-        print("+++++++++++++++++++++++++++++++++++")
         for var in model.getVars():
             cansol[var.VarName] = var.X
         
@@ -81,6 +80,7 @@ class SCIP(Predict):
         solver = pyscipopt.Model()
         solver.readProblem(self.instance)
         solver.setRealParam('limits/time', self.time_limit)
+        solver.setIntParam("limits/solutions", 1)
         solver.optimize()
     
         cansol = {}
@@ -106,6 +106,7 @@ class CPLEX(Predict):
         model = cplex.Cplex()
         model.read(self.instance)
         model.parameters.timelimit.set(self.time_limit)
+        model.parameters.mip.limits.solutions.set(1)
         model.solve()
         
         for var_name, var_value in zip(model.variables.get_names(), model.solution.get_values()):
@@ -770,10 +771,6 @@ class GAT(Predict):
                 new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
         self.end()
-        for i in range(100):
-            print("P", i, predict[i])
-        for i in range(100):
-            print("S", i, select[i])
         return Cantsol(predict, select)
 
 class GTRAN(Predict):

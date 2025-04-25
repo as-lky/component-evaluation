@@ -91,7 +91,9 @@ class Np(Modify): # build a new problem based on the prediction
         
         m1 = scp.Model()
         m1.setParam('limits/time', self.time_limit)
+        m1.setIntParam("limits/solutions", 1)
         #m1.hideOutput(True)
+        
         m1.setParam('randomization/randomseedshift', 0)
         m1.setParam('randomization/lpseed', 0)
         m1.setParam('randomization/permutationseed', 0)
