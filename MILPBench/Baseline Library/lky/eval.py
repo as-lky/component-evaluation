@@ -18,8 +18,10 @@ parser = argparse.ArgumentParser(description="receive evaluate instruction")
 parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
+parser.add_argument("--type", type=str, help="easy medium hard")
 parser.add_argument("--task", type=str, help="eval run task")
 parser.add_argument("--eval", action="store_true", help="exec eval func")
+
 args = parser.parse_args()
 
 def c(a):
@@ -108,10 +110,11 @@ else :
     modlis = ["sr", "nr", "np", "default"]
     sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP", "scip"]
 
+
 # grlis = ["bi"]
 # prelis = ["gcn"]
-# modlis = ["nr"]
-# sealis = ["LNS"]
+# modlis = ["sr"]
+# sealis = ["ACP"]
 
 # grlis = ["bi", "bir", "tri", "trir", "default"]
 # prelis = ["gcn", "gurobi", "scip"]
@@ -372,32 +375,42 @@ def yxtime_c(time_list, val_list, lobj): # 第一个有效解和特优解的时�
     ans2g = ans2g / 20
     return ans1 + ans2, ans1g + ans2g # 越小越好
   
-# 早期(10% time)进展比例
+# 早期(20% time)进展比例
 def early_progress_c(time_list, val_list, lobj):
-    th = time_list[-1] * 0.1
+    th = time_list[-1] * 0.2
     early = -1
     for i in range(len(time_list)):
         if time_list[i] < th:
             early = i
     if early == -1:
-        return 0.99
+        return -1, 0.99
     
     early_val = val_list[early]
-    final_val = val_list[-1]
-    initial_val = val_list[0]
+    early_gap = abs(early_val - lobj) / early_val if early_val != 0 else 999999999  
+    k = 0.01
+    return early_gap, 1 - math.exp(-k * early_gap * 100) # 越小越好
 
-    total_gap = abs(final_val - initial_val)
-    early_gap = abs(early_val - initial_val)
-
-    progress_ratio = early_gap / total_gap if total_gap != 0 else 1
-    return progress_ratio, 1 - progress_ratio  # 越大越好，反转后越小越好
+# 中期(60% time)进展比例
+def medium_progress_c(time_list, val_list, lobj):
+    th = time_list[-1] * 0.6
+    medium = -1
+    for i in range(len(time_list)):
+        if time_list[i] < th:
+            medium = i
+    if medium == -1:
+        return -1, 0.99
+    
+    medium_val = val_list[medium]
+    medium_gap = abs(medium_val - lobj) / medium_val if medium_val != 0 else 999999999  
+    k = 0.01
+    return medium_gap, 1 - math.exp(-k * medium_gap * 100) # 越小越好
 
 def overall_efficiency_c(time_list, val_list, lobj):
     total_time = time_list[-1] - time_list[0]
     total_improvement = abs(val_list[-1] - val_list[0])
     total_improvement = total_improvement / lobj if lobj != 0 else 9999999999
     if total_improvement == 0:
-        return 0.999  # 无改进为差的情况
+        return 999999999, 0.999  # 无改进为差的情况
     efficiency = total_time / total_improvement
     if efficiency > 1e4 - 10:
         efficiency = 1e4 - 10
@@ -406,9 +419,9 @@ def overall_efficiency_c(time_list, val_list, lobj):
     efficiency_log = math.log10(10 + efficiency)  # 范围 [1, 4]
     return efficiency, (efficiency_log - 1) / 4  # 越小越好
 
-def area_under_curve(time_list, val_list, lobj):
+def area_under_curve_c(time_list, val_list, lobj):
     if len(time_list) < 2:
-        return 0.5 # 返回中间值
+        return -1, 0.5 # 返回中间值
     if lobj == 0:
         normalized_vals = [abs(v) for v in val_list]
     else:
@@ -427,7 +440,7 @@ def area_under_curve(time_list, val_list, lobj):
 
 def stagnation_time_c(time_list, val_list, lobj):
     if len(time_list) < 2:
-        return 0.5 # 返回中间值
+        return -1, 0.5 # 返回中间值
     all_time = 0
     for i in range(len(time_list)-1):
         if val_list[i] == val_list[i+1]:
@@ -486,13 +499,23 @@ def stagnation_time_c(time_list, val_list, lobj):
 #TODO:不严格单调的噢!
 #TODO:求解的稳定性指标?
 
-def calc(data, lobj):
+def calc(data, lobj, type):
     # 最终gap
     # TODO: 做数学推导
     result_list = data['result_list']
     time_list = [_[0] for _ in result_list]
     val_list = [_[1] for _ in result_list]
-    
+    if type == 'easy':
+        threshold = 100
+    elif type == 'medium':
+        threshold = 600
+    elif type == 'hard':
+        threshold = 3500
+    else:
+        threshold = -1
+    if time_list[-1] < threshold:
+        time_list.append(threshold)
+        val_list.append(val_list[-1])
     gapstartori, gapstart = gapstart_c(time_list, val_list, lobj)
     gapendori, gapend = gapend_c(time_list, val_list, lobj)
     irori, ir = ir_c(time_list, val_list, lobj)
@@ -501,34 +524,36 @@ def calc(data, lobj):
 #    stimeori, stime = stime_c(time_list, val_list, lobj)
     yxtimeori, yxtime = yxtime_c(time_list, val_list, lobj)
     early_progressori, early_progress = early_progress_c(time_list, val_list, lobj)
-    overall_efficiencyori, overall_efficiency = overall_efficiency_c(time_list, val_list, lobj)
-    area_under_curveori, area_under_curve = area_under_curve(time_list, val_list, lobj)
+    medium_progressori, medium_progress = medium_progress_c(time_list, val_list, lobj)
+    area_under_curveori, area_under_curve = area_under_curve_c(time_list, val_list, lobj)
     stagnation_timeori, stagnation_time = stagnation_time_c(time_list, val_list, lobj)
     
     ll0 = [
         gapstartori,
         gapendori,
-        irori,
+#        irori, 依赖初始解
         nrori,
-#        stimeori,
+#        stimeori, 
         yxtimeori,
      #   sgapori,
         early_progressori,
-        overall_efficiencyori,
+        medium_progressori,
+  #      overall_efficiencyori, 依赖初始解
         area_under_curveori,
-        stagnation_timeori,
+#        stagnation_timeori,
     ]
     
     ll1 = [ gapstart,
             gapend,
-            ir,
+ #           ir,  依赖初始解
             nr,
 #            stime,
             yxtime,
             early_progress,
-            overall_efficiency,
+            medium_progress,
+ #           overall_efficiency, 依赖初始解
             area_under_curve,
-            stagnation_time,
+#            stagnation_time,
       #      sgap,
 #          imprate_c(time_list, val_list, lobj),
 #          stability_c(time_list, val_list, lobj),
@@ -626,7 +651,8 @@ def eval():
                     cnt = 0
                     sum = 0
                     result_list_tmp = {}
-                    INSLIST = ["0", "1", "5", "6", "8"]
+#                    INSLIST = ["0", "1", "5", "6", "8"]
+                    INSLIST = ["0", "1", "2"]
                     for instance in instancelis:
                         instance_name = os.path.basename(instance)
                         tmp = re.match(r"(.*)\.lp", instance_name)
@@ -646,7 +672,7 @@ def eval():
                             # continue
                         with open(des, 'r') as f:
                             data = json.load(f)
-                        LISORI, LIS = calc(data, lobj)
+                        LISORI, LIS = calc(data, lobj, args.type)
                         data['indicatorsori'] = LISORI
                         data['indicators'] = LIS
                         ttttt = calc_api([LIS]) * 1e7
@@ -655,8 +681,7 @@ def eval():
                         result_list_tmp[f'{tmp}'] = LIS + [ttttt]
                         with open(des, 'w') as f:
                             json.dump(data, f, indent=4)
-#                    assert cnt == 5
-                    if cnt == 0:
+                    if cnt != 3:
                         continue
                     result_list_tmp['score'] = sum / cnt
                     result_list[we] = result_list_tmp

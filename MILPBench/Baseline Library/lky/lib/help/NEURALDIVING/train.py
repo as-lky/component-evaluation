@@ -568,6 +568,12 @@ def c(a):
     tmp = tmp.group(1)
     return int(tmp) <= 9
 
+def d(a):
+    tmp = os.path.basename(a)
+    tmp = re.match(r".*_([0-9]+)", tmp)
+    tmp = tmp.group(1)
+    return int(tmp) > 9 and int(tmp) < 16 
+
 def train(
     train_data_dir: str,
     model_save_dir: Union[str, Path],
@@ -597,7 +603,9 @@ def train(
     DIR_SOL = train_data_path + 'Pickle'
 
     sample_names = os.listdir(DIR_BG)
-    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if not c(name)]
+#    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if not c(name)]
+    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if d(name)]
+    # TODO : modify !!!!
 
     train_files = sample_files[: int(0.9 * len(sample_files))]
     valid_files = sample_files[int(0.9 * len(sample_files)) :]

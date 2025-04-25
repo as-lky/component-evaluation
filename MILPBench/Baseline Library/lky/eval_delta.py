@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit, brentq
 # python eval.py --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/
 
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
-parser.add_argument("--taskname", required=True, choices=["IP", "IS", "WA", "CA"], help="taskname")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 args = parser.parse_args()
 
@@ -63,7 +63,8 @@ def domi(a, b):
             return False
     return True 
 
-INSLIST = ["IS_easy_instance_6", "IS_easy_instance_5", "IS_easy_instance_8", "IS_easy_instance_1", "IS_easy_instance_0"]
+#INSLIST = ["IS_easy_instance_6", "IS_easy_instance_5", "IS_easy_instance_8", "IS_easy_instance_1", "IS_easy_instance_0"]
+INSLIST = ["SC_easy_instance_0", "SC_easy_instance_1", "SC_easy_instance_2"]
 SCORES = {}
 for a, b in result_list.items():
     SCORES[a] = 0
@@ -80,7 +81,7 @@ for instance in INSLIST:
                 break
         if flag == 0:
             tmp.append(i)
-    print(tmp)
+    print("WIN : ", tmp)
     if len(tmp) == 1:
         SCORES[tmp[0]] += calc_api([result_list[tmp[0]][instance][:-1]]) * 1e7
     else:
@@ -92,9 +93,11 @@ for instance in INSLIST:
             po = er.copy()
             po.remove(result_list[i][instance][:-1])
             SCORES[i] += (score - calc_api(po)) * 1e7
+    wee = "bir_gcn_sr_LNS_"
+    if wee in SCORES:
+        with open("./eval_delta_log.txt", 'a') as f:
+            f.write(f"{wee} {SCORES[wee]}\n")
             
-    break
-
 instance = instancelis[0]
 instance_name = os.path.basename(instance)
 tmp = re.match(r"(.*)_[0-9]+\.lp", instance_name)
