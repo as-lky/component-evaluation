@@ -67,8 +67,6 @@ def time_efficiency_c(time_list, val_list, lobj):  # 时间效率
 
 
 
-
-
 #deepseek
 import math
 import numpy as np
@@ -102,7 +100,7 @@ def area_under_curve(time_list, val_list, lobj):
     if lobj == 0:
         normalized_vals = [abs(v) for v in val_list]
     else:
-        normalized_vals = [abs(v - lobj)/abs(lobj) for v in val_list]
+        normalized_vals = [abs(v - lobj) / abs(lobj) for v in val_list]
     
     # 计算曲线下面积（梯形法）
     auc = 0.0
@@ -221,6 +219,7 @@ def mid_stagnation_c(time_list, val_list, lobj):
     stagnation_ratio = 1 - (mid_gap / total_gap) if total_gap != 0 else 1
     return min(stagnation_ratio, 0.999)  # 越小越好
 
+
 # 指标4：最终快速收敛指数
 def late_convergence_c(time_list, val_list, lobj):
     n = len(val_list)
@@ -280,3 +279,15 @@ def overall_efficiency_c(time_list, val_list, lobj):
 # 考虑整个求解过程中，目标值改进与所耗费的总时间比例。
 # 改进幅度大且消耗时间短，得分接近0；反之接近1。
 # ##
+
+
+
+def stagnation_time_c(time_list, val_list, lobj):
+    if len(time_list) < 2:
+        return 0.5 # 返回中间值
+    all_time = 0
+    for i in range(len(time_list)-1):
+        if val_list[i] == val_list[i+1]:
+            all_time += time_list[i+1] - time_list[i]
+    all_time /= time_list[-1]
+    return all_time, all_time # 越小越好

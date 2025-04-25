@@ -57,42 +57,56 @@ if args.task == "birgat":
     prelis = ["gat"]
     modlis = ["sr", "nr", "np", "default"]
     sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
-if args.task == "bigat":
+elif args.task == "bigat":
     grlis = ["bi"]
     prelis = ["gat"]
     modlis = ["sr", "nr", "np", "default"]
     sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
-if args.task == "gurobisearch":
+elif args.task == "gurobisearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
     prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "np", "default"]
     sealis = ["gurobi"]
-if args.task == "LIHsearch":
+elif args.task == "LIHsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
     prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "np", "default"]
     sealis = ["LIH"]
-if args.task == "MIHsearch":
+elif args.task == "MIHsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
     prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "np", "default"]
     sealis = ["MIH"]
-if args.task == "LNSsearch":
+elif args.task == "LNSsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
     prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "np", "default"]
     sealis = ["LNS"]
-if args.task == "NALNSsearch":
+elif args.task == "NALNSsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
     prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "np", "default"]
     sealis = ["NALNS"]
-if args.task == "ACPsearch":
+elif args.task == "ACPsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
     prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "np", "default"]
     sealis = ["ACP"]
-    
+elif args.task == "SCIPsearch":
+    grlis = ["bi", "bir", "tri", "trir", "default"]
+    prelis = ["gcn", "gurobi", "scip"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["scip"]
+elif args.task == "cplex":
+    grlis = ["bi", "bir", "tri", "trir", "default"]
+    prelis = ["cplex"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP", "scip"]
+else :
+    grlis = ["bi", "bir", "tri", "trir", "default"]
+    prelis = ["cplex", "gcn", "gurobi", "scip", "gat"]
+    modlis = ["sr", "nr", "np", "default"]
+    sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP", "scip"]
 
 # grlis = ["bi"]
 # prelis = ["gcn"]
@@ -342,7 +356,7 @@ def stime_c(time_list, val_list, lobj): # 收敛到收敛gap一定范围内的�
 def yxtime_c(time_list, val_list, lobj): # 第一个有效解和特优解的时间
     cnt = 0
     for _ in val_list:
-        if abs(_ - lobj) / lobj < 0.05:
+        if abs(_ - lobj) / lobj < 0.1:
             break
         cnt += 1
     ans1 = time_list[cnt] if cnt < len(time_list) else 99999990
@@ -350,61 +364,124 @@ def yxtime_c(time_list, val_list, lobj): # 第一个有效解和特优解的时�
     ans1g = ans1g / 20
     cnt = 0
     for _ in val_list:
-        if abs(_ - lobj) / lobj < 0.001:
+        if abs(_ - lobj) / lobj < 0.01:
             break
         cnt += 1
     ans2 = time_list[cnt] if cnt < len(time_list) else 99999990
     ans2g = math.log10(10 + ans2) # 1 到 8
     ans2g = ans2g / 20
     return ans1 + ans2, ans1g + ans2g # 越小越好
+  
+# 早期(10% time)进展比例
+def early_progress_c(time_list, val_list, lobj):
+    th = time_list[-1] * 0.1
+    early = -1
+    for i in range(len(time_list)):
+        if time_list[i] < th:
+            early = i
+    if early == -1:
+        return 0.99
     
-def imprate_c(time_list, val_list, lobj):
-    if len(val_list) < 2:
-        return 0.5  # 数据太少，返回中等值
+    early_val = val_list[early]
+    final_val = val_list[-1]
+    initial_val = val_list[0]
+
+    total_gap = abs(final_val - initial_val)
+    early_gap = abs(early_val - initial_val)
+
+    progress_ratio = early_gap / total_gap if total_gap != 0 else 1
+    return progress_ratio, 1 - progress_ratio  # 越大越好，反转后越小越好
+
+def overall_efficiency_c(time_list, val_list, lobj):
     total_time = time_list[-1] - time_list[0]
-    improve = abs(val_list[0] - val_list[-1])
-    rate = improve / total_time
-    norm_rate = 1 / (rate + 1e-5)  # 改进越快值越小
-    norm_rate = min(norm_rate, 10)
-    return norm_rate / 10  # 越小越好
+    total_improvement = abs(val_list[-1] - val_list[0])
+    total_improvement = total_improvement / lobj if lobj != 0 else 9999999999
+    if total_improvement == 0:
+        return 0.999  # 无改进为差的情况
+    efficiency = total_time / total_improvement
+    if efficiency > 1e4 - 10:
+        efficiency = 1e4 - 10
+        
+    # 假设常见效率范围在 [0.001, 1000]，取log映射
+    efficiency_log = math.log10(10 + efficiency)  # 范围 [1, 4]
+    return efficiency, (efficiency_log - 1) / 4  # 越小越好
 
-def stability_c(time_list, val_list, lobj):
-    diffs = [abs(val_list[i+1] - val_list[i]) for i in range(len(val_list)-1)]
-    if not diffs:
-        return 0
-    ss = 0
-    for diff in diffs:
-        ss += diff
-    avg_diff = ss / len(diffs)
-    norm_diff = min(avg_diff / (abs(val_list[0]) + 1e-6), 1)
-    return norm_diff  # 越小越好
+def area_under_curve(time_list, val_list, lobj):
+    if len(time_list) < 2:
+        return 0.5 # 返回中间值
+    if lobj == 0:
+        normalized_vals = [abs(v) for v in val_list]
+    else:
+        normalized_vals = [abs(v - lobj) / abs(lobj) for v in val_list]
+    
+    auc = 0.0
+    for i in range(1, len(time_list)):
+        delta_t = time_list[i] - time_list[i-1]
+        avg_gap = (normalized_vals[i] + normalized_vals[i-1]) / 2
+        auc += avg_gap * delta_t
+    
+    if auc > 1e4 - 10:
+        auc = 1e4 - 10
+    log_auc = math.log10(10 + auc)  # 1 到 4
+    return auc, (log_auc - 1) / 4  # 越小越好
 
-def earlygap_c(time_list, val_list, lobj):
-    total_time = time_list[-1]
-    threshold_time = total_time * 0.1
-    early_vals = [val_list[i] for i in range(len(time_list)) if time_list[i] <= threshold_time]
-    if not early_vals:
-        early_vals = [val_list[0]]
-    gaps = [abs(v - lobj) / v if v != 0 else 1 for v in early_vals]
-    ss = 0
-    for gap in gaps:
-        ss += gap
-    mean_gap = ss / len(gaps)
-    return min(mean_gap, 1)  # 越小越好
+def stagnation_time_c(time_list, val_list, lobj):
+    if len(time_list) < 2:
+        return 0.5 # 返回中间值
+    all_time = 0
+    for i in range(len(time_list)-1):
+        if val_list[i] == val_list[i+1]:
+            all_time += time_list[i+1] - time_list[i]
+    all_time /= time_list[-1]
+    return all_time, all_time # 越小越好
+  
+# def imprate_c(time_list, val_list, lobj):
+#     if len(val_list) < 2:
+#         return 0.5  # 数据太少，返回中等值
+#     total_time = time_list[-1] - time_list[0]
+#     improve = abs(val_list[0] - val_list[-1])
+#     rate = improve / total_time
+#     norm_rate = 1 / (rate + 1e-5)  # 改进越快值越小
+#     norm_rate = min(norm_rate, 10)
+#     return norm_rate / 10  # 越小越好
 
-def trend_c(time_list, val_list, lobj):
-    if len(val_list) < 3:
-        return 0.5  # 数据太少，返回中等值
+# def stability_c(time_list, val_list, lobj):
+#     diffs = [abs(val_list[i+1] - val_list[i]) for i in range(len(val_list)-1)]
+#     if not diffs:
+#         return 0
+#     ss = 0
+#     for diff in diffs:
+#         ss += diff
+#     avg_diff = ss / len(diffs)
+#     norm_diff = min(avg_diff / (abs(val_list[0]) + 1e-6), 1)
+#     return norm_diff  # 越小越好
 
-    # 统计每一步是否改进了
-    improvements = 0
-    for i in range(1, len(val_list)):
-        if val_list[i] < val_list[i - 1]:
-            improvements += 1
-    trend_ratio = improvements / (len(val_list) - 1)
+# def earlygap_c(time_list, val_list, lobj):
+#     total_time = time_list[-1]
+#     threshold_time = total_time * 0.1
+#     early_vals = [val_list[i] for i in range(len(time_list)) if time_list[i] <= threshold_time]
+#     if not early_vals:
+#         early_vals = [val_list[0]]
+#     gaps = [abs(v - lobj) / v if v != 0 else 1 for v in early_vals]
+#     ss = 0
+#     for gap in gaps:
+#         ss += gap
+#     mean_gap = ss / len(gaps)
+#     return min(mean_gap, 1)  # 越小越好
 
-    # 越接近持续改进，trend_ratio 越接近 1，越好，取反归一化
-    return 1 - trend_ratio  # 越小越好
+# def trend_c(time_list, val_list, lobj):
+#     if len(val_list) < 3:
+#         return 0.5  # 数据太少，返回中等值
+
+#     # 统计每一步是否改进了
+#     improvements = 0
+#     for i in range(1, len(val_list)):
+#         if val_list[i] < val_list[i - 1]:
+#             improvements += 1
+#     trend_ratio = improvements / (len(val_list) - 1)
+
+#     # 越接近持续改进，trend_ratio 越接近 1，越好，取反归一化
+#     return 1 - trend_ratio  # 越小越好
 
 #TODO:不严格单调的噢!
 #TODO:求解的稳定性指标?
@@ -421,8 +498,12 @@ def calc(data, lobj):
     irori, ir = ir_c(time_list, val_list, lobj)
     nrori, nr = nr_c(time_list, val_list, lobj)
 #    sgapori, stimeori, sgap, stime = sgap_stime_c(time_list, val_list, lobj)
-    stimeori, stime = stime_c(time_list, val_list, lobj)
+#    stimeori, stime = stime_c(time_list, val_list, lobj)
     yxtimeori, yxtime = yxtime_c(time_list, val_list, lobj)
+    early_progressori, early_progress = early_progress_c(time_list, val_list, lobj)
+    overall_efficiencyori, overall_efficiency = overall_efficiency_c(time_list, val_list, lobj)
+    area_under_curveori, area_under_curve = area_under_curve(time_list, val_list, lobj)
+    stagnation_timeori, stagnation_time = stagnation_time_c(time_list, val_list, lobj)
     
     ll0 = [
         gapstartori,
@@ -432,6 +513,10 @@ def calc(data, lobj):
 #        stimeori,
         yxtimeori,
      #   sgapori,
+        early_progressori,
+        overall_efficiencyori,
+        area_under_curveori,
+        stagnation_timeori,
     ]
     
     ll1 = [ gapstart,
@@ -440,6 +525,10 @@ def calc(data, lobj):
             nr,
 #            stime,
             yxtime,
+            early_progress,
+            overall_efficiency,
+            area_under_curve,
+            stagnation_time,
       #      sgap,
 #          imprate_c(time_list, val_list, lobj),
 #          stability_c(time_list, val_list, lobj),
@@ -447,7 +536,7 @@ def calc(data, lobj):
 #          trend_c(time_list, val_list, lobj),
           # TODO: 使用大模型指标
           ]
-    ll2 = [0.05, 0.4, 0.15, 0.05, 0.15, 0.05, 0.05, 0.05, 0.05]
+#    ll2 = [0.05, 0.4, 0.15, 0.05, 0.15, 0.05, 0.05, 0.05, 0.05]
  #   for i in range(len(ll1)):
 #        ll1[i] = 1 - (1 - ll1[i]) * ll2[i] / 0.4
  #       print(ll1[i])
