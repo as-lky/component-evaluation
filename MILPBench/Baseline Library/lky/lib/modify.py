@@ -148,8 +148,9 @@ class Np(Modify): # build a new problem based on the prediction
         for var in m1.getVars():
             cansol[var.name] = m1.getVal(var)
         
+        
         self.end()
-        return Cansol2S(m1.getGap(), cansol, m1.getObjVal())
+        return Cansol2S(m1.getObjVal(), cansol, m1.getGap())
         
         
 

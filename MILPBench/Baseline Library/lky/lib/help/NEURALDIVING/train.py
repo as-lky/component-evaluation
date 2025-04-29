@@ -603,8 +603,8 @@ def train(
     DIR_SOL = train_data_path + 'Pickle'
 
     sample_names = os.listdir(DIR_BG)
-#    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if not c(name)]
-    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if d(name)]
+    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if not c(name)]
+#    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if d(name)]
     # TODO : modify !!!!
 
     train_files = sample_files[: int(0.9 * len(sample_files))]

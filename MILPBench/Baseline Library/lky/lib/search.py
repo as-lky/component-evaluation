@@ -14,7 +14,7 @@ from .help.LNS.help import split_problem as split_problem_LNS
 from .help.ACP.help import split_problem as split_problem_ACP
 from .mod import Component, Modify2Search, Cansol2S
 
-from pyscipopt import SCIP_PARAMSETTING
+from pyscipopt import SCIP_PARAMSETTING, Eventhdlr, SCIP_EVENTTYPE
 from typing import Type, cast
 from gurobipy import GRB
 
@@ -651,13 +651,27 @@ class SCIP(Search): # solver
         model.setParam('randomization/permutationseed', 0)
         model.setHeuristics(SCIP_PARAMSETTING.AGGRESSIVE)#MIP focus
         model.readProblem(self.instance)
-        
         new_sol = model.createSol()
         for var in model.getVars():
             model.setSolVal(new_sol, var, input.cansol[var.name])
         model.addSol(new_sol)
+
+        log_time = []
+        log_val = []
+        def get_val_time(model, event):
+            log_time.append(model.getSolvingTime())
+            log_val.append(model.getPrimalbound())
+            
+        model.attachEventHandlerCallback(get_val_time, [SCIP_EVENTTYPE.BESTSOLFOUND])
         model.optimize()
+        log_val.append(model.getPrimalbound())
+        log = []
+        for i in range(len(log_time)):
+            log.append((log_time[i], log_val[i + 1]))
         
+        for _ in range(len(log)):
+            result_list.append((result_list[0][0] + log[_][0], log[_][1]))
+            
         self.end()
 
 #        return model.getGap(), model.getObjVal()
