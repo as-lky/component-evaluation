@@ -580,7 +580,7 @@ class GAT(Predict):
                 os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
             
             exec = ["python", "lib/help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
-                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--device", f"{self.device}", "--lr", "1e-4", "--alpha", "2e-3", "--no-cuda"]
+                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--device", f"{self.device}", "--lr", "1e-4", "--alpha", "2e-4", "--no-cuda"]
             if self.sequence_name[0][-1] == 'r':
                 exec.append("--random_feature")
             subprocess.run(exec)
@@ -744,7 +744,7 @@ class GAT(Predict):
                     nclass=1,                   # Number of classes
                     dropout=0.5,                # Dropout
                     nheads=6,                   # Number of heads
-                    alpha=0.2)                  # LeakyReLU alpha coefficient
+                    alpha=2e-4)                  # LeakyReLU alpha coefficient
         state_dict_load = torch.load(path_model)
         model.load_state_dict(state_dict_load)
         model.to(self.device)

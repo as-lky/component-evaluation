@@ -49,6 +49,8 @@ class LIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
+        self.choose = kwargs.get("choose") or 0.5
+        self.set_pa = kwargs.get("set_pa") or 0.3
         ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
@@ -93,7 +95,7 @@ class LIH(Search):
 
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
         
-        now_sol, now_time, now_gap = greedy_one_LIH(now_instance, time_limit)
+        now_sol, now_time, now_gap = greedy_one_LIH(now_instance, time_limit, self.choose, self.set_pa)
 
         for _ in range(len(now_sol)):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
@@ -106,6 +108,9 @@ class MIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
+        self.choose = kwargs.get("choose") or 0.5
+        self.set_pa = kwargs.get("set_pa") or 0.3
+ 
         ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
@@ -150,7 +155,7 @@ class MIH(Search):
             new_new_sol[i] = ns_[i]
 
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
-        now_sol, now_time, now_gap = greedy_one_MIH(now_instance, time_limit)
+        now_sol, now_time, now_gap = greedy_one_MIH(now_instance, time_limit, self.choose, self.set_pa)
 
         for _ in range(len(now_sol)):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))
@@ -313,6 +318,7 @@ class NALNS(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
+        self.choose = kwargs.get("choose") or 0.5
         
         ... # tackle parameters
 
@@ -360,7 +366,7 @@ class NALNS(Search):
             new_new_sol[i] = new_sol[i]
 
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
-        now_sol, now_time, now_gap = greedy_one_NALNS(now_instance, time_limit)
+        now_sol, now_time, now_gap = greedy_one_NALNS(now_instance, time_limit, self.choose)
 
         for _ in range(len(now_sol)):
             result_list.append((result_list[0][0] + now_time[_], now_sol[_]))

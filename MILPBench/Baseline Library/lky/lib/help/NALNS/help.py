@@ -142,7 +142,7 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
     except:
         return -1, -1, -1, -1
 
-def greedy_one(now_instance_data, time_limit):
+def greedy_one(now_instance_data, time_limit, choose_=0.5):
     begin_time = time.time()
     set_time = time_limit
     epsilon = 1e-3
@@ -161,7 +161,7 @@ def greedy_one(now_instance_data, time_limit):
     initial_sol = now_instance_data[12]
 
     #choose = 0.5
-    choose = 0.5
+    choose = choose_
     step = 0.1
     turn = 0
     best_val = eval(n, coefficient, initial_sol)

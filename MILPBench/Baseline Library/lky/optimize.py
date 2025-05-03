@@ -5,10 +5,13 @@ import math
 import re
 import json
 import argparse
+import numpy as np
 
 parser = argparse.ArgumentParser(description="receive optimize instruction")
 parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "SC", "MIKS"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
+parser.add_argument("--type", type=str, required=True, choices=["easy", "medium", "hard"], help="the task type")
+
 #parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
 args = parser.parse_args()
 
@@ -36,7 +39,7 @@ def calc_api(lis):
 
 def gapstart_c(time_list, val_list, lobj): # 初始解gap 
     val = val_list[0]
-    gap = abs(val - lobj) / val if val != 0 else 999999999  
+    gap = abs(val - lobj) / lobj if val != 0 else 999999999  
     k = 0.01
     t = 1 - math.exp(-k * gap * 100) 
     if t >= 0.95:
@@ -45,7 +48,7 @@ def gapstart_c(time_list, val_list, lobj): # 初始解gap
 
 def gapend_c(time_list, val_list, lobj): # 最终gap
     val = val_list[-1]
-    gap = abs(val - lobj) / val if val != 0 else 999999999  
+    gap = abs(val - lobj) / lobj if val != 0 else 999999999  
     k = 0.01
     return gap, 1 - math.exp(-k * gap * 100) # 越小越好
 
@@ -68,176 +71,6 @@ def nr_c(time_list, val_list, lobj): # 求解的有效率
     if num == 0: 
         nr = 0.0001
     return num / len(val_list), 1 - nr # 越小越好
-
-def sgap_stime_c(time_list, val_list, lobj): # 预估收敛gap & 收敛到预估收敛gap一定范围内的预估收敛时间
-    if len(val_list) < 2:
-        return -1, 0.5 # 数据太少，返回中等值
-    type = -1 if lobj < val_list[0] else 1
-    vv, tt = val_list.copy(), time_list.copy()
-    
-    threshold = abs(vv[-1] - lobj) / vv[-1] if vv[-1] != 0 else 999999999  
-    threshold /= len(time_list) * 5
-    threshold = min(threshold, 1e-8)
-
-    vv[0] = abs(vv[0] - lobj) / vv[0] if vv[0] != 0 else 999999999
-    for i in range(1, len(vv)):
-        gap_tmp = abs(vv[i] - lobj) / vv[i] if vv[i] != 0 else 999999999  
-        vv[i] = min(gap_tmp, vv[i - 1] - threshold)
-
-    for i in range(len(vv)):
-        vv[i] = -vv[i]
-    
-    
-    GAP = -1
-    for i in range(len(tt) - 1):
-        if abs(vv[i + 1] - vv[i]) / abs(vv[i + 1]) > 3:
-           GAP = i 
-    print(val_list, GAP)
-    print(vv)
-
-    tt = tt[(GAP + 1):-1]
-    vv = vv[(GAP + 1):-1]
-    
-    # def poly2(x, a, b, c):
-    #     return a * x ** 2 + b * x + c
-
-    # def poly3(x, a, b, c, d):
-    #     return a * x ** 3 + b * x ** 2 + c * x + d
-
-    # def exp_func(x, a, b, c):
-    #     return a * np.exp(b * x) + c
-
-    # def log_func(x, a, b, c):
-    #     return a * np.log(b * x) + c
-
-    def func(x, b, c):
-        return b * np.exp(c * x)
-    popt, _ = curve_fit(func, tt, vv, maxfev=10000, bounds=([-np.inf, -np.inf], [0, np.inf]))
-    for i in range(len(tt)):
-        print(i, tt[i], vv[i], func(tt[i], *popt))
-    print(func(1000, *popt))
-    return 0, 0
-    # funcs = {
-    #     "poly2": poly2,
-    #     "poly3": poly3,
-    #     "exp": exp_func,
-    #     "log": log_func
-    # }
-    
-    # results = {}
-    # for name, func in funcs.items():
-    #     bounds = (-np.inf, np.inf)
-        
-    #     if name == "log":
-    #         bounds = ([-np.inf, 1e-8, -np.inf], [np.inf, np.inf, np.inf])
-            
-    #     popt, _ = curve_fit(func, tt, vv, maxfev=10000, bounds=bounds)
-    #     fitted_vals = func(np.array(tt), *popt)
-    #     r2 = r2_score(vv, fitted_vals)
-    #     results[name] = (func, popt, r2)
-    
-    # mmax = -9999999
-    # best = None
-    # for name, _ in results.items():
-    #     if mmax < results[name][2]:
-    #         mmax = results[name][2]
-    #         best = results[name]
-
-    # for i in range(len(tt)):
-    #     print(i, tt[i], vv[i], best[0](time_list[i], *best[1]))
-    # for i in range(8):
-    #     print(i, 10 ** i, best[0](10 ** i, *best[1]))
-    #     print(-i, -10 ** i, best[0](-10 ** i, *best[1]))
-
-    # import pandas as pd
-    # data = pd.DataFrame({'x': time_list, 'y': vv})
-    # reg = setup(data, target='y', session_id=123)
-    # best_model = compare_models(fold=5)
-    
-    # tmp = pd.DataFrame({
-    #     'x': [1e10],
-    # })
-    # sgap = -predict_model(best_model, tmp)['prediction_label'][0]
-    # sgap = max(sgap, 0)
-    
-    # def g(x):
-    #     tmp = pd.DataFrame({
-    #         'x': [x],
-    #     })
-    #     return predict_model(best_model, tmp)['prediction_label'][0] + sgap * 1.05
-        
-    # for i in range(len(tt)):
-    #     tmp = pd.DataFrame({
-    #         'x': [tt[i]],
-    #     })
-    #     print(i, tt[i], vv[i], predict_model(best_model, tmp)['prediction_label'][0])
-
-    # for i in range(10):
-    #     tmp = pd.DataFrame({
-    #         'x': [-10**i],
-    #     })
-    #     print(-10**i, predict_model(best_model, tmp)['prediction_label'][0])
-
-    # for i in range(10):
-    #     tmp = pd.DataFrame({
-    #         'x': [10**i],
-    #     })
-    #     print(10**i, predict_model(best_model, tmp)['prediction_label'][0])
-
-
-    try:
-        stime = brentq(g, -1e10, 1e10)
-    except:
-        print("!!!!!!!!!!!!!!!!!!!!!!!!")
-        print(g(-1e10), g(1e10))
-        
-    weee = stime
-    assert stime < 1e10
-    assert stime > 0
-    stime = math.log(10 + stime) # 1 到 10.1
-    k = 0.01
-    return sgap, weee, 1 - math.exp(-k * sgap * 100), stime / 10.1 # 越小越好
-
-def stime_c(time_list, val_list, lobj): # 收敛到收敛gap一定范围内的预估收敛时间
-    if len(val_list) < 5:
-        return -1, 0.5 # 数据太少，返回中等值
-    vv, tt = val_list.copy(), time_list.copy()
-    
-    threshold = abs(vv[-1] - lobj) / vv[-1] if vv[-1] != 0 else 999999999  
-    threshold /= len(time_list) * 5
-    threshold = min(threshold, 1e-2)
-
-    vv[0] = abs(vv[0] - lobj) / vv[0] if vv[0] != 0 else 999999999
-    for i in range(1, len(vv)):
-        gap_tmp = abs(vv[i] - lobj) / vv[i] if vv[i] != 0 else 999999999  
-        vv[i] = min(gap_tmp, vv[i - 1] - threshold)
-
-    for i in range(len(vv)):
-        vv[i] = -vv[i]
-    
-    GAP = -1
-    for i in range(len(tt) - 1):
-        if abs(vv[i + 1] - vv[i]) / abs(vv[i + 1]) > 3:
-           GAP = i 
-
-    tt = tt[(GAP + 1):-1]
-    vv = vv[(GAP + 1):-1]
-    
-    def func(x, b, c):
-        return b * np.exp(c * x)
-    popt, _ = curve_fit(func, tt, vv, maxfev=10000, bounds=([-1e16, -1e16], [0, 1e16]))
-
-    def g(x):
-        return func(x, *popt) + 1e-5
-    
-    stime = brentq(g, -1e10, 1e10)
-    print(stime)
-    wwwww = stime
-    assert stime < 1e10
-    assert stime > 0
-    stime = math.log10(10 + stime) # 1 到 10.1
-    k = 0.01
-    return wwwww, stime / 10.1 # 越小越好
 
 def yxtime_c(time_list, val_list, lobj): # 第一个有效解和特优解的时间
     cnt = 0
@@ -457,18 +290,23 @@ def calc(data, lobj, type):
     # 稳定性指标？
     # 加入大模型的
     ...
-
+    
 def work_gurobi(instance):
     instance_name = os.path.basename(instance)
     tmp = re.match(r"(.*)\.lp", instance_name)
     tmp = tmp.group(1)
     tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
    
-    if not os.path.exists(f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'):
-        subprocess.run(["python", "main.py", "--device", "cuda", "--args.taskname", f"{args.taskname}", "--instance_path", f"{instance}",
-        "--graphencode", "default", "--predict", "gurobi", "--predict_time_limit", "30", "--modify", "default", "--search", "gurobi", "--search_time_limit", "30"])    
+    if not os.path.exists(f'./logs/work/{args.taskname}/test_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'):
+        rt = 3000
+        if args.type == 'medium':
+            rt = 12000
+        if args.type == 'hard':
+            rt = 30000
+        subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
+        "--graphencode", "test", "--predict", "gurobi", "--modify", "default", "--search", "gurobi", "--whole_time_limit", f"{rt}"])    
     
-    des = f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'
+    des = f'./logs/work/{args.taskname}/test_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'
     with open(des, 'r') as f:
         data = json.load(f)
     
@@ -485,11 +323,27 @@ def objective(trial):
 #    gpu_id = trial.number % NUM_GPUS
 #    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
-    block = trial.suggest_int('block', 1, 5)
-    ratio = trial.suggest_float('max_turn_ratio', 0.1, 0.5)
-    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'SC', '--instance_path', './Dataset/SC_medium_instance/SC_medium_instance/LP/SC_medium_instance_0.lp', 
-            '--graphencode', 'bi', '--predict', 'gat', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'ACP']
-    exec += ['--search_ACP_block', str(block), '--search_ACP_max_turn_ratio', str(ratio)]
+    #block = trial.suggest_int('block', 1, 5)
+    #ratio = trial.suggest_float('max_turn_ratio', 0.1, 0.5)
+    type_ = args.type
+#    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'SC', '--instance_path', './Dataset/SC_medium_instance/SC_medium_instance/LP/SC_medium_instance_0.lp', 
+#            '--graphencode', 'bi', '--predict', 'gat', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'ACP']
+    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'MVC', '--instance_path', './Dataset/MVC_medium_instance/MVC_medium_instance/LP/MVC_medium_instance_0.lp', 
+            '--graphencode', 'default', '--predict', 'gurobi', '--whole_time_limit', '100', '--modify', 'default', '--search', 'ACP']
+
+    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'MIKS', '--instance_path', './Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/LP/MIKS_fakemedium_instance_0.lp', 
+            '--graphencode', 'bi', '--predict', 'gat', '--whole_time_limit', '2000', '--modify', 'nr', '--search', 'ACP']
+    
+    exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'MIKS', '--instance_path', './Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/LP/MIKS_fakemedium_instance_0.lp', 
+            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '30', '--modify', 'sr', '--search', 'MIH']
+    
+#    exec += ['--search_ACP_block', str(block), '--search_ACP_max_turn_ratio', str(ratio)]
+    
+    choose = trial.suggest_float('choose', 0.1, 0.9)
+    set_pa = trial.suggest_float('set_pa', 0.1, 0.9)
+    
+    exec += ['--search_LIH_MIH_NALNS_choose', str(choose), '--search_LIH_MIH_set_pa', str(set_pa)]
+    
     subprocess.run(exec)
     
     instance_name = os.path.basename(args.instance_path)
@@ -499,15 +353,16 @@ def objective(trial):
 
 
     tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
-    we = f"default_gurobi_default_ACP_{block}_{ratio}_"
+ #   we = f"default_gurobi_default_ACP_{block}_{ratio}_"
+    we = f"bi_gcn_sr_MIH_{choose}_{set_pa}_"
     des = f'./logs/work/{args.taskname}/{we}/{tmp_}/{tmp}_result.txt'
     with open(des, 'r') as f:
         data = json.load(f)
-    LISORI, LIS = calc(data, lobj)
+    LISORI, LIS = calc(data, lobj, type_)
     with open('./tmp.txt', 'a') as f:
-        f.write(f"{block} {ratio} {LISORI} {LIS}\n")
+        f.write(f"{choose} {set_pa} {LISORI} {LIS}\n")
     return calc_api([LIS]) * 1e7
 
 
 study = optuna.create_study(direction="maximize")
-study.optimize(objective, n_trials=40, n_jobs=4)  # 并行4个worker（=4块GPU）
+study.optimize(objective, n_trials=1, n_jobs=1)  # 并行4个worker（=4块GPU）

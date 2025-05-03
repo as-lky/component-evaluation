@@ -16,6 +16,8 @@ class Graphencode(Component):
             cls = TripartiteR
         elif component == "default":
             cls = Default
+        elif component == "test":
+            cls = Default 
         else:
             raise ValueError("Graphencode component type is not defined")
 

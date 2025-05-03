@@ -54,6 +54,7 @@ class SpGraphAttentionLayer(nn.Module):
         #dv = 'cpu'
         N = node.size()[0]
         edge = edge.t()
+        edge = torch.nan_to_num(edge, nan=0.0, posinf=1e10, neginf=-1e10)
         assert not torch.isnan(edge).any()
         #print(input)
 
@@ -76,12 +77,15 @@ class SpGraphAttentionLayer(nn.Module):
         #     print(i, sum)
             
         # h: N x out
+        h = torch.nan_to_num(h, nan=0.0, posinf=1e10, neginf=-1e10)
+        
         assert not torch.isnan(h).any()
 
         # Self-attention on the nodes - Shared attention mechanism
         #print(torch.cat((h[edge[0, :], :], h[edge[1, :], :]), dim=1))
         #print(edge_feature)
         edge_h = torch.cat((torch.cat((h[edge[0, :], :], h[edge[1, :], :]), dim=1), edge_feature), dim = 1).t()
+        edge_h = torch.nan_to_num(edge_h, nan=0.0, posinf=1e10, neginf=-1e10)
         assert not torch.isnan(edge_h).any()
         # edge: (2*D + 1) x E
 
@@ -111,16 +115,19 @@ class SpGraphAttentionLayer(nn.Module):
         edge_e = torch.exp(-self.leakyrelu(self.a.mm(edge_h).squeeze()))
         tmp = edge_e
 
+        edge_e = torch.nan_to_num(edge_e, nan=0.0, posinf=1e10, neginf=-1e10)
         assert not torch.isnan(edge_e).any()
         # attention, edge_e: E
 
         e_rowsum = self.special_spmm(edge, edge_e, torch.Size([N, N]), torch.ones(size=(N,1), device=dv))
-        # e_rowsum: N x 1
+        # e_rowsum: N x 1   
 
         #edge_e = self.dropout(edge_e)
         # edge_e: E
         
         h_prime = self.special_spmm(edge, edge_e, torch.Size([N, N]), h)
+        h_prime = torch.nan_to_num(h_prime, nan=0.0, posinf=1e10, neginf=-1e10)
+        
         #
         assert not torch.isnan(h_prime).any()
         # h_prime: N x out
@@ -130,6 +137,8 @@ class SpGraphAttentionLayer(nn.Module):
         h_prime = torch.where(torch.isnan(h_prime), torch.full_like(h_prime, 0), h_prime)
         h_prime = torch.add(h, h_prime)
         # h_prime: N x out
+        h_prime = torch.nan_to_num(h_prime, nan=0.0, posinf=1e10, neginf=-1e10)
+        
         assert not torch.isnan(h_prime).any()
 
         #print(h.size(), h_prime.size())

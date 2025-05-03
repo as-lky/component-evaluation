@@ -1,0 +1,18 @@
+(gurobi + ACP)
+MVC medium 600 27029 gurobi 27887 (2 0.161)   3.1%
+MVC hard 3500 274553 gurobi 274591 (5 0.37)  0.02%
+
+
+(gat + ACP)
+SC medium 600 ACP block_size 2 max_turn_ratio 0.153  17400   gurobi 24000  27.5%
+SC hard 3500 block_size 5 max_turn_ratio 0.5 178017  gurobi 320042  44.4%
+
+
+(gcn + NALNS)
+IS medium 600 23098 (NALNS)   gurobi 21966  5.2%
+IS hard 暂未跑出来(cuda 装不下gcn) ???
+
+
+MIKS 未开始
+
+

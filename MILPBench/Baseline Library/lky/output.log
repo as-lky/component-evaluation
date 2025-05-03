@@ -1,0 +1,11 @@
+Preprocess Component is working ...
+Preprocess Component is done.
+ Graphencode Component Bipartite is working ...
+Set parameter Username
+Set parameter LicenseID to value 2647731
+Academic license - for non-commercial use only - expires 2026-04-06
+Read LP format model from file ./Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/LP/MIKS_fakemedium_instance_0.lp
+Reading time = 0.64 seconds
+Obj: 204352 rows, 205350 columns, 613053 nonzeros
+ Graphencode Component Bipartite is done.
+ Predict Component GAT is working ...

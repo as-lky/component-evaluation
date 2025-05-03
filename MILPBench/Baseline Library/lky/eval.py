@@ -37,11 +37,11 @@ def work_gurobi(instance):
     tmp = tmp.group(1)
     tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
    
-    if not os.path.exists(f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'):
+    if not os.path.exists(f'./logs/work/{args.taskname}/test_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'):
         subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
-        "--graphencode", "default", "--predict", "gurobi", "--modify", "default", "--search", "gurobi", "whole_time_limit", "100"])    
+        "--graphencode", "test", "--predict", "gurobi", "--modify", "default", "--search", "gurobi", "--whole_time_limit", "3000"])    
     
-    des = f'./logs/work/{args.taskname}/default_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'
+    des = f'./logs/work/{args.taskname}/test_gurobi_default_gurobi_/{tmp_}/{tmp}_result.txt'
     with open(des, 'r') as f:
         data = json.load(f)
     
@@ -153,7 +153,7 @@ def calc_api(lis):
 
 def gapstart_c(time_list, val_list, lobj): # 初始解gap 
     val = val_list[0]
-    gap = abs(val - lobj) / val if val != 0 else 999999999  
+    gap = abs(val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
     t = 1 - math.exp(-k * gap * 100) 
     if t >= 0.95:
@@ -162,7 +162,8 @@ def gapstart_c(time_list, val_list, lobj): # 初始解gap
 
 def gapend_c(time_list, val_list, lobj): # 最终gap
     val = val_list[-1]
-    gap = abs(val - lobj) / val if val != 0 else 999999999  
+    print(val, lobj)
+    gap = abs(val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
     return gap, 1 - math.exp(-k * gap * 100) # 越小越好
 
@@ -697,4 +698,5 @@ if args.eval:
     eval()
 else :
     run()
+        
         

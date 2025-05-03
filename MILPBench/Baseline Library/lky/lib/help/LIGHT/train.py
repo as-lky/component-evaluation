@@ -187,7 +187,7 @@ random.seed(args.seed)
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 
-data_num = 20
+data_num = 5
 data_features = []
 data_labels = []
 data_solution = []
@@ -203,7 +203,6 @@ def c(a):
     tmp = re.match(r".*_([0-9]+)", tmp)
     tmp = tmp.group(1)
     return int(tmp) <= 9
-
 
 log_dir = args.log_dir
 train_data_dir = args.train_data_dir

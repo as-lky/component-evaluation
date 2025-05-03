@@ -186,7 +186,7 @@ def select_neighborhood(n, current_solution, lp_solution):
         neighbor_score[var_index] = -abs(current_solution[var_index] - lp_solution[var_index])
     return neighbor_score
 
-def greedy_one(now_instance_data, time_limit):
+def greedy_one(now_instance_data, time_limit, choose_=0.5, set_pa=0.3):
     begin_time = time.time()
     set_time = time_limit
     epsilon = 1e-3
@@ -204,14 +204,14 @@ def greedy_one(now_instance_data, time_limit):
     value_type = now_instance_data[11]
     initial_sol = now_instance_data[12]
 
-    choose = 0.5
+    choose = choose_
     best_val = eval(n, coefficient, initial_sol)
     
     turn_time = [time.time() - begin_time]
     turn_ans = [best_val]
 
     #Find LP solution
-    LP_sol = initial_LP_solution(n, m, k, site, value, constraint, constraint_type, coefficient, set_time * 0.3, obj_type, lower_bound, upper_bound, value_type)
+    LP_sol = initial_LP_solution(n, m, k, site, value, constraint, constraint_type, coefficient, set_time * set_pa, obj_type, lower_bound, upper_bound, value_type)
     
     turn_limit = 100
     GAP = 0
