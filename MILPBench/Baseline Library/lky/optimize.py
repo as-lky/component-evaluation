@@ -303,7 +303,7 @@ def work_gurobi(instance):
             rt = 12000
         if args.type == 'hard':
             rt = 30000
-        rt = 30
+        rt = 60
         subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
         "--graphencode", "test", "--predict", "gurobi", "--modify", "default", "--search", "gurobi", "--whole_time_limit", f"{rt}"])    
     
@@ -339,7 +339,7 @@ def objective(trial):
             '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '30', '--modify', 'sr', '--search', 'MIH']
     
     exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'IS', '--instance_path', './Dataset/IS_easy_instance/IS_easy_instance/LP/IS_easy_instance_0.lp', 
-            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '30', '--modify', 'sr', '--search', 'MIH']
+            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '60', '--modify', 'sr', '--search', 'MIH']
     
 #    exec += ['--search_ACP_block', str(block), '--search_ACP_max_turn_ratio', str(ratio)]
     
@@ -367,6 +367,6 @@ def objective(trial):
         f.write(f"{choose} {set_pa} {LISORI} {LIS}\n")
     return calc_api([LIS]) * 1e7
 
-
-study = optuna.create_study(direction="maximize")
-study.optimize(objective, n_trials=40, n_jobs=10)  # 并行4个worker（=4块GPU）
+study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/optuna_db", study_name="IStest")
+#study.optimize(objective, n_trials=2, n_jobs=2)  # 并行4个worker（=4块GPU）
+study.optimize(objective, n_trials=1)
