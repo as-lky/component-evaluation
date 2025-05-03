@@ -506,14 +506,35 @@ def calc(data, lobj, type):
     result_list = data['result_list']
     time_list = [_[0] for _ in result_list]
     val_list = [_[1] for _ in result_list]
+
+    if lobj > val_list[0]:
+        lobj = max(lobj, val_list[-1])
+    else:
+        lobj = min(lobj, val_list[-1])
+
     if type == 'easy':
         threshold = 100
     elif type == 'medium':
-        threshold = 600
+        if args.taskname == 'IS':
+            threshold = 600
+        if args.taskname == 'MIKS':
+            threshold = 4000
+        if args.taskname == 'SC':
+            threshold = 600
+        if args.taskname == 'MVC':
+            threshold = 600
     elif type == 'hard':
-        threshold = 3500
+        if args.taskname == 'IS':
+            threshold = 3500
+        if args.taskname == 'MIKS':
+            threshold = 8000
+        if args.taskname == 'SC':
+            threshold = 3500
+        if args.taskname == 'MVC':
+            threshold = 1800
     else:
         threshold = -1
+
     if time_list[-1] < threshold:
         time_list.append(threshold)
         val_list.append(val_list[-1])

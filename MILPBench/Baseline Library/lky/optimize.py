@@ -221,12 +221,32 @@ def calc(data, lobj, type):
     result_list = data['result_list']
     time_list = [_[0] for _ in result_list]
     val_list = [_[1] for _ in result_list]
+
+    if lobj > val_list[0]:
+        lobj = max(lobj, val_list[-1])
+    else:
+        lobj = min(lobj, val_list[-1])
+
     if type == 'easy':
         threshold = 100
     elif type == 'medium':
-        threshold = 600
+        if args.taskname == 'IS':
+            threshold = 600
+        if args.taskname == 'MIKS':
+            threshold = 4000
+        if args.taskname == 'SC':
+            threshold = 600
+        if args.taskname == 'MVC':
+            threshold = 600
     elif type == 'hard':
-        threshold = 3500
+        if args.taskname == 'IS':
+            threshold = 3500
+        if args.taskname == 'MIKS':
+            threshold = 8000
+        if args.taskname == 'SC':
+            threshold = 3500
+        if args.taskname == 'MVC':
+            threshold = 1800
     else:
         threshold = -1
     if time_list[-1] < threshold:
@@ -303,7 +323,6 @@ def work_gurobi(instance):
             rt = 12000
         if args.type == 'hard':
             rt = 30000
-        rt = 60
         subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
         "--graphencode", "test", "--predict", "gurobi", "--modify", "default", "--search", "gurobi", "--whole_time_limit", f"{rt}"])    
     
@@ -336,10 +355,10 @@ def objective(trial):
             '--graphencode', 'bi', '--predict', 'gat', '--whole_time_limit', '2000', '--modify', 'nr', '--search', 'ACP']
     
     exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'MIKS', '--instance_path', './Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/LP/MIKS_fakemedium_instance_0.lp', 
-            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '30', '--modify', 'sr', '--search', 'MIH']
+            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '4000', '--modify', 'sr', '--search', 'MIH']
     
-    exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'IS', '--instance_path', './Dataset/IS_easy_instance/IS_easy_instance/LP/IS_easy_instance_0.lp', 
-            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '60', '--modify', 'sr', '--search', 'MIH']
+#    exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'IS', '--instance_path', './Dataset/IS_easy_instance/IS_easy_instance/LP/IS_easy_instance_0.lp', 
+#            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '60', '--modify', 'sr', '--search', 'MIH']
     
 #    exec += ['--search_ACP_block', str(block), '--search_ACP_max_turn_ratio', str(ratio)]
     
@@ -367,6 +386,6 @@ def objective(trial):
         f.write(f"{choose} {set_pa} {LISORI} {LIS}\n")
     return calc_api([LIS]) * 1e7
 
-study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/optuna_db", study_name="IStest")
+study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/optuna_db", study_name="MIKSmedium")
 #study.optimize(objective, n_trials=2, n_jobs=2)  # 并行4个worker（=4块GPU）
 study.optimize(objective, n_trials=1)
