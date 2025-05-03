@@ -395,11 +395,10 @@ class Gurobi(Search): # solver
 
         log = []
         def my_callback(model, where):
-            if where == GRB.Callback.MIP:
+            if where == GRB.Callback.MIPSOL:
                 runtime = model.cbGet(GRB.Callback.RUNTIME)
-                obj_best = model.cbGet(GRB.Callback.MIP_OBJBST)
+                obj_best = model.cbGet(GRB.Callback.MIPSOL_OBJ)
                 log.append((runtime, obj_best))
-
 
         model.optimize(my_callback)
 

@@ -303,6 +303,7 @@ def work_gurobi(instance):
             rt = 12000
         if args.type == 'hard':
             rt = 30000
+        rt = 30
         subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
         "--graphencode", "test", "--predict", "gurobi", "--modify", "default", "--search", "gurobi", "--whole_time_limit", f"{rt}"])    
     
@@ -337,6 +338,9 @@ def objective(trial):
     exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'MIKS', '--instance_path', './Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/LP/MIKS_fakemedium_instance_0.lp', 
             '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '30', '--modify', 'sr', '--search', 'MIH']
     
+    exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'IS', '--instance_path', './Dataset/IS_easy_instance/IS_easy_instance/LP/IS_easy_instance_0.lp', 
+            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '30', '--modify', 'sr', '--search', 'MIH']
+    
 #    exec += ['--search_ACP_block', str(block), '--search_ACP_max_turn_ratio', str(ratio)]
     
     choose = trial.suggest_float('choose', 0.1, 0.9)
@@ -365,4 +369,4 @@ def objective(trial):
 
 
 study = optuna.create_study(direction="maximize")
-study.optimize(objective, n_trials=1, n_jobs=1)  # 并行4个worker（=4块GPU）
+study.optimize(objective, n_trials=40, n_jobs=10)  # 并行4个worker（=4块GPU）

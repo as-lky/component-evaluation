@@ -113,3 +113,5 @@ if __name__ == "__main__":
     # tri gcn nr ...
     # python main.py --device cuda:2 --taskname MVC --instance_path ./Dataset/MVC_medium_instance/MVC_medium_instance/LP/MVC_medium_instance_8.lp --graphencode default --predict gurobi --predict_time_limit 10 --modify default --search gurobi --search_time_limit 2000
     # python main.py --device cuda:2 --taskname MIKS --instance_path ./Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/LP/MIKS_fakemedium_instance_0.lp --graphencode bi --predict gcn --modify np --search gurobi --train_data_dir ./Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/ 
+    # python main.py --device cuda:2 --taskname SC --instance_path ./Dataset/SC_fakemedium_instance/SC_fakemedium_instance/LP/SC_fakemedium_instance_0.lp --graphencode default --predict gurobi --modify default --search gurobi --whole_time_limit 4000
+     

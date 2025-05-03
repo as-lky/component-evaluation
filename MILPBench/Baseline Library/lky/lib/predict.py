@@ -63,7 +63,7 @@ class Gurobi(Predict): # TODO: 找到解立刻停止
         model.optimize()
         for var in model.getVars():
             cansol[var.VarName] = var.X
-        
+
         self.end()
         return Cansol2M(model.ObjVal, cansol, model.MIPGap)
     
