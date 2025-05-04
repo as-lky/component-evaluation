@@ -64,6 +64,7 @@ def initial_LP_solution(n, m, k, site, value, constraint, constraint_type, coeff
             model.addConstr(constr >= constraint[i])
         else:
             model.addConstr(constr == constraint[i])
+    print("MIH INIT SOL TIME: ", max(time_limit - (time.time() - begin_time), 0))
     model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
     model.optimize()
     new_sol = np.zeros(n)
@@ -155,6 +156,7 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                     print(constr,  constraint[i])
                     print(now_col)
     #model.setParam('OutputFlag', 0)
+    print("MIH SOL TIME: ", max(time_limit - (time.time() - begin_time), 0))
     model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
     model.optimize()
     try:
@@ -211,6 +213,7 @@ def greedy_one(now_instance_data, time_limit, choose_=0.5, set_pa=0.3):
     turn_ans = [best_val]
 
     #Find LP solution
+    print("MIH INIT SOL")
     LP_sol = initial_LP_solution(n, m, k, site, value, constraint, constraint_type, coefficient, set_time * set_pa, obj_type, lower_bound, upper_bound, value_type)
     
     turn_limit = 100
@@ -219,6 +222,7 @@ def greedy_one(now_instance_data, time_limit, choose_=0.5, set_pa=0.3):
     while(time.time() - begin_time <= set_time):
         #print("before", parts, time.time() - begin_time)
         #"n", "m", "k", "site", "value", "constraint", "initial_solution", "current_solution", "objective_coefficient"
+        print("MIH select neighborhood")
         neighbor_score = select_neighborhood(
                             n, 
                             copy.deepcopy(now_sol), 
@@ -229,6 +233,7 @@ def greedy_one(now_instance_data, time_limit, choose_=0.5, set_pa=0.3):
         color = np.zeros(n)
         for i in range(int(n * choose)):
             color[indices[i]] = 1
+        print("MIH gurobi solve")
         new_sol, now_val, now_flag, now_gap = Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, min(set_time - (time.time() - begin_time), turn_limit), obj_type, lower_bound, upper_bound, value_type, now_sol, color)
         if(now_flag == -1):
             continue
@@ -246,6 +251,7 @@ def greedy_one(now_instance_data, time_limit, choose_=0.5, set_pa=0.3):
 
         turn_ans.append(best_val) 
         turn_time.append(time.time() - begin_time)
+        print(turn_ans[-1], turn_time[-1])
     return(turn_ans, turn_time, GAP)
 
 def split_problem(lp_file):
@@ -282,10 +288,11 @@ def split_problem(lp_file):
 
     objective = model.getObjective()
     temp_coeff = []
-    temp_varname = []
+    temp_varname = {}
     for i in range(objective.size()):
         temp_coeff.append(objective.getCoeff(i))
-        temp_varname.append(objective.getVar(i).VarName)
+#        temp_varname.append(objective.getVar(i).VarName)
+        temp_varname[objective.getVar(i).VarName] = i
 
     i = 0
     for var in model.getVars():
@@ -296,7 +303,7 @@ def split_problem(lp_file):
         if var.VarName not in temp_varname:
             coefficient.append(0)
         else:
-            coefficient.append(temp_coeff[temp_varname.index(var.VarName)])
+            coefficient.append(temp_coeff[temp_varname[var.VarName]])
         i+=1
 
     for cnstr in model.getConstrs():

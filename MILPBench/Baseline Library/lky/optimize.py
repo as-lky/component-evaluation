@@ -388,4 +388,4 @@ def objective(trial):
 
 study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/optuna_db", study_name="MIKSmedium")
 #study.optimize(objective, n_trials=2, n_jobs=2)  # 并行4个worker（=4块GPU）
-study.optimize(objective, n_trials=1)
+study.optimize(objective, n_trials=5)

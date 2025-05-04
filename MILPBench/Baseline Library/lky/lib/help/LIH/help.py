@@ -41,10 +41,12 @@ def split_problem(lp_file):
 
     objective = model.getObjective()
     temp_coeff = []
-    temp_varname = []
+#    temp_varname = []
+    temp_varname = {}
     for i in range(objective.size()):
         temp_coeff.append(objective.getCoeff(i))
-        temp_varname.append(objective.getVar(i).VarName)
+#        temp_varname.append(objective.getVar(i).VarName)
+        temp_varname[objective.getVar(i).VarName] = i
 
     i = 0
     for var in model.getVars():
@@ -55,7 +57,7 @@ def split_problem(lp_file):
         if var.VarName not in temp_varname:
             coefficient.append(0)
         else:
-            coefficient.append(temp_coeff[temp_varname.index(var.VarName)])
+            coefficient.append(temp_coeff[temp_varname[var.VarName]])
         i+=1
 
     for cnstr in model.getConstrs():
@@ -297,4 +299,5 @@ def greedy_one(now_instance_data, time_limit, choose_=0.5, set_pa=0.3):
 
         turn_ans.append(best_val) 
         turn_time.append(time.time() - begin_time)
+        print(turn_ans[-1], turn_time[-1])
     return(turn_ans, turn_time, GAP)

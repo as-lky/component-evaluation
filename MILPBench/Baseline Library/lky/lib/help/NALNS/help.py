@@ -208,6 +208,7 @@ def greedy_one(now_instance_data, time_limit, choose_=0.5):
 
         turn_ans.append(best_val) 
         turn_time.append(time.time() - begin_time)
+        print(turn_ans[-1], turn_time[-1])
     return(turn_ans, turn_time, GAP)
 
 def split_problem(lp_file):

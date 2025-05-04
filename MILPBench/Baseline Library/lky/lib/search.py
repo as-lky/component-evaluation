@@ -155,6 +155,7 @@ class MIH(Search):
             new_new_sol[i] = ns_[i]
 
         now_instance = (n, m, k, new_site, new_value, new_constraint, new_constraint_type, new_coefficient, obj_type, new_lower_bound, new_upper_bound, new_value_type, new_new_sol)
+        print("MIH greedy one")
         now_sol, now_time, now_gap = greedy_one_MIH(now_instance, time_limit, self.choose, self.set_pa)
 
         for _ in range(len(now_sol)):
@@ -293,6 +294,7 @@ class LNS(Search):
                             
                     now_sol.append(ans)
                     now_time.append(time.time() - begin_time)
+                    print(now_sol[-1], now_time[-1])
                     
                 except:
                     print("Cant't optimize more~~")
@@ -601,6 +603,7 @@ class ACP(Search): # solver
                     
                 now_sol.append(ans)
                 now_time.append(time.time() - begin_time)
+                print(now_sol[-1], now_time[-1])
                                    
                 if(model.MIPGap != 0):
                     if(KK == 2 and PP > 1):
