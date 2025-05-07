@@ -64,10 +64,10 @@ def domi(a, b):
     return True 
 
 #INSLIST = ["IS_easy_instance_6", "IS_easy_instance_5", "IS_easy_instance_8", "IS_easy_instance_1", "IS_easy_instance_0"]
-#INSLIST = ["SC_easy_instance_0", "SC_easy_instance_1", "SC_easy_instance_2"]
+INSLIST = ["SC_easy_instance_0", "SC_easy_instance_1", "SC_easy_instance_2"]
 #INSLIST = ["IS_easy_instance_0", "IS_easy_instance_1", "IS_easy_instance_2"]
 #INSLIST = ["MVC_easy_instance_0", "MVC_easy_instance_1", "MVC_easy_instance_2"]
-INSLIST = ["MIKS_easy_instance_0", "MIKS_easy_instance_1", "MIKS_easy_instance_2"]
+#INSLIST = ["MIKS_easy_instance_0", "MIKS_easy_instance_1", "MIKS_easy_instance_2"]
 
 SCORES = {}
 for a, b in result_list.items():

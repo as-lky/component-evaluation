@@ -13,7 +13,7 @@ from lib.search import Search
 
 parser = argparse.ArgumentParser(description=" receive select instruction from higher level")
 parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2", "cuda:1"], help="cpu or cuda")
-parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC"], help="taskname")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC", "MIKSC"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")
 parser.add_argument("--whole_time_limit", type=int, help="time limit for whole process")

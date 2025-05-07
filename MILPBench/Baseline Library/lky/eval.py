@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit, brentq
 # python eval.py --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/
 
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
-parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC"], help="taskname")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC", "MIKSC"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
 parser.add_argument("--type", type=str, help="easy medium hard")
@@ -162,7 +162,6 @@ def gapstart_c(time_list, val_list, lobj): # 初始解gap
 
 def gapend_c(time_list, val_list, lobj): # 最终gap
     val = val_list[-1]
-    print(val, lobj)
     gap = abs(val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
     return gap, 1 - math.exp(-k * gap * 100) # 越小越好
@@ -387,7 +386,7 @@ def early_progress_c(time_list, val_list, lobj):
         return -1, 0.99
     
     early_val = val_list[early]
-    early_gap = abs(early_val - lobj) / early_val if early_val != 0 else 999999999  
+    early_gap = abs(early_val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
     return early_gap, 1 - math.exp(-k * early_gap * 100) # 越小越好
 
@@ -402,7 +401,7 @@ def medium_progress_c(time_list, val_list, lobj):
         return -1, 0.99
     
     medium_val = val_list[medium]
-    medium_gap = abs(medium_val - lobj) / medium_val if medium_val != 0 else 999999999  
+    medium_gap = abs(medium_val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
     return medium_gap, 1 - math.exp(-k * medium_gap * 100) # 越小越好
 

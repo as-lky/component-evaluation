@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 
 parser = argparse.ArgumentParser(description="receive optimize instruction")
-parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "SC", "MIKS"], help="taskname")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "SC", "MIKS", "MIKSC"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--type", type=str, required=True, choices=["easy", "medium", "hard"], help="the task type")
 
@@ -102,7 +102,7 @@ def early_progress_c(time_list, val_list, lobj):
         return -1, 0.99
     
     early_val = val_list[early]
-    early_gap = abs(early_val - lobj) / early_val if early_val != 0 else 999999999  
+    early_gap = abs(early_val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
     return early_gap, 1 - math.exp(-k * early_gap * 100) # 越小越好
 
@@ -117,7 +117,7 @@ def medium_progress_c(time_list, val_list, lobj):
         return -1, 0.99
     
     medium_val = val_list[medium]
-    medium_gap = abs(medium_val - lobj) / medium_val if medium_val != 0 else 999999999  
+    medium_gap = abs(medium_val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
     return medium_gap, 1 - math.exp(-k * medium_gap * 100) # 越小越好
 
@@ -323,6 +323,7 @@ def work_gurobi(instance):
             rt = 12000
         if args.type == 'hard':
             rt = 30000
+        rt = 30
         subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
         "--graphencode", "test", "--predict", "gurobi", "--modify", "default", "--search", "gurobi", "--whole_time_limit", f"{rt}"])    
     
@@ -357,8 +358,8 @@ def objective(trial):
     exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'MIKS', '--instance_path', './Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/LP/MIKS_fakemedium_instance_0.lp', 
             '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '4000', '--modify', 'sr', '--search', 'MIH']
     
-#    exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'IS', '--instance_path', './Dataset/IS_easy_instance/IS_easy_instance/LP/IS_easy_instance_0.lp', 
-#            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '60', '--modify', 'sr', '--search', 'MIH']
+    exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'IS', '--instance_path', './Dataset/IS_easy_instance/IS_easy_instance/LP/IS_easy_instance_0.lp', 
+            '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '300', '--modify', 'sr', '--search', 'MIH']
     
 #    exec += ['--search_ACP_block', str(block), '--search_ACP_max_turn_ratio', str(ratio)]
     
@@ -382,10 +383,11 @@ def objective(trial):
     with open(des, 'r') as f:
         data = json.load(f)
     LISORI, LIS = calc(data, lobj, type_)
+    result___ = calc_api([LIS]) * 1e7
     with open('./tmp.txt', 'a') as f:
-        f.write(f"{choose} {set_pa} {LISORI} {LIS}\n")
-    return calc_api([LIS]) * 1e7
+        f.write(f"{result___} {choose} {set_pa} {LISORI} {LIS}\n")
+    return result___
 
-study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/optuna_db", study_name="MIKSmedium")
+study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/test", study_name="ISmedium")
 #study.optimize(objective, n_trials=2, n_jobs=2)  # 并行4个worker（=4块GPU）
 study.optimize(objective, n_trials=5)

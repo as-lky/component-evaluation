@@ -202,7 +202,7 @@ def c(a):
     tmp = os.path.basename(a)
     tmp = re.match(r".*_([0-9]+)", tmp)
     tmp = tmp.group(1)
-    return int(tmp) <= 9
+    return int(tmp) <= 3
 
 log_dir = args.log_dir
 train_data_dir = args.train_data_dir
@@ -423,4 +423,3 @@ print('Loading {}th epoch'.format(best_epoch))
 #model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
 
 print(loss_values)
-
