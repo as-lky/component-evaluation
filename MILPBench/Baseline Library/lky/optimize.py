@@ -65,7 +65,7 @@ def ir_c(time_list, val_list, lobj): # 改进比率
 def nr_c(time_list, val_list, lobj): # 求解的有效率
     num = 0
     for _ in val_list:
-        if abs(_ - lobj) / lobj < 0.05:
+        if abs(_ - lobj) / lobj < 0.1:
             num += 1
     nr = num / len(val_list) 
     if num == 0: 
@@ -323,7 +323,6 @@ def work_gurobi(instance):
             rt = 12000
         if args.type == 'hard':
             rt = 30000
-        rt = 30
         subprocess.run(["python", "main.py", "--device", "cuda", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}",
         "--graphencode", "test", "--predict", "gurobi", "--modify", "default", "--search", "gurobi", "--whole_time_limit", f"{rt}"])    
     
@@ -338,8 +337,9 @@ def work_gurobi(instance):
 
 NUM_GPUS = 4
 
-lobj, _ = work_gurobi(args.instance_path)
-
+#lobj, _ = work_gurobi(args.instance_path)
+#lobj, _ = 55994, -1
+lobj, _ = 563956, -1
 def objective(trial):
 #    gpu_id = trial.number % NUM_GPUS
 #    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
@@ -361,12 +361,25 @@ def objective(trial):
     exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'IS', '--instance_path', './Dataset/IS_easy_instance/IS_easy_instance/LP/IS_easy_instance_0.lp', 
             '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '300', '--modify', 'sr', '--search', 'MIH']
     
-#    exec += ['--search_ACP_block', str(block), '--search_ACP_max_turn_ratio', str(ratio)]
+    exec = ['python', 'main.py', '--device', 'cuda', '--taskname', 'IS', '--instance_path', './Dataset/IS_fakemedium_instance/IS_fakemedium_instance/LP/IS_fakemedium_instance_10.lp', 
+            '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'NALNS']
     
+    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'IS', '--instance_path', './Dataset/IS_fakemedium_instance/IS_fakemedium_instance/LP/IS_fakemedium_instance_10.lp', 
+            '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '600', '--modify', 'np', '--search', 'ACP']
+
+    exec = ['python', 'main.py', '--device', 'cpu', '--taskname', 'IS', '--instance_path', './Dataset/IS_fakehard_instance/IS_fakehard_instance/LP/IS_fakehard_instance_0.lp', 
+            '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '3500', '--modify', 'nr', '--search', 'NALNS']
+    
+    
+    # block = trial.suggest_int('block', 2, 10)   
+    # ratio = trial.suggest_float('ratio', 0.1, 0.9)
+    # exec += ['--search_ACP_LNS_block', str(block), '--search_ACP_LNS_max_turn_ratio', str(ratio)]
+ 
     choose = trial.suggest_float('choose', 0.1, 0.9)
-    set_pa = trial.suggest_float('set_pa', 0.1, 0.9)
+#    set_pa = trial.suggest_float('set_pa', 0.1, 0.9)
     
-    exec += ['--search_LIH_MIH_NALNS_choose', str(choose), '--search_LIH_MIH_set_pa', str(set_pa)]
+#    exec += ['--search_LIH_MIH_NALNS_choose', str(choose), '--search_LIH_MIH_set_pa', str(set_pa)]
+    exec += ['--search_LIH_MIH_NALNS_choose', str(choose)]
     
     subprocess.run(exec)
     
@@ -378,16 +391,21 @@ def objective(trial):
 
     tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
  #   we = f"default_gurobi_default_ACP_{block}_{ratio}_"
-    we = f"bi_gcn_sr_MIH_{choose}_{set_pa}_"
+#    we = f"bi_gcn_sr_MIH_{choose}_{set_pa}_"
+    we = f"trir_gcn_nr_NALNS_{choose}_"
+#    we = f"trir_gcn_np_ACP_{block}_{ratio}_"
     des = f'./logs/work/{args.taskname}/{we}/{tmp_}/{tmp}_result.txt'
     with open(des, 'r') as f:
         data = json.load(f)
     LISORI, LIS = calc(data, lobj, type_)
     result___ = calc_api([LIS]) * 1e7
     with open('./tmp.txt', 'a') as f:
-        f.write(f"{result___} {choose} {set_pa} {LISORI} {LIS}\n")
+#        f.write(f"{result___} {choose} {set_pa} {LISORI} {LIS}\n")
+        f.write(f"{result___} {choose} {LISORI} {LIS}\n")
+#        f.write(f"{result___} {block} {ratio} {LISORI} {LIS}\n")
+
     return result___
 
-study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/test", study_name="ISmedium")
+study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/IShard", study_name="IShardNALNS")
 #study.optimize(objective, n_trials=2, n_jobs=2)  # 并行4个worker（=4块GPU）
 study.optimize(objective, n_trials=5)

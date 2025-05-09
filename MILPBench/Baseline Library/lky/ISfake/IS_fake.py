@@ -7,7 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), './MIS_easy2/code'))
 from milp_2181 import IndependentSet
 from pyscipopt import Model, quicksum
 
-def generate_and_save_lp_files(parameters, output_dir, num_instances=3, seed=42123):
+def generate_and_save_lp_files(parameters, output_dir, num_instances=1, seed=12123):
     os.makedirs(output_dir, exist_ok=True)
 
     for i in range(num_instances):
@@ -62,4 +62,4 @@ if __name__ == "__main__":
     }
 
     output_folder = './MIS_easy2/fake'
-    generate_and_save_lp_files(parameters, output_folder, num_instances=3)
+    generate_and_save_lp_files(parameters, output_folder, num_instances=1)

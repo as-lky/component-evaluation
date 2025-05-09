@@ -179,7 +179,7 @@ def ir_c(time_list, val_list, lobj): # 改进比率
 def nr_c(time_list, val_list, lobj): # 求解的有效率
     num = 0
     for _ in val_list:
-        if abs(_ - lobj) / lobj < 0.05:
+        if abs(_ - lobj) / lobj < 0.1:
             num += 1
     nr = num / len(val_list) 
     if num == 0: 

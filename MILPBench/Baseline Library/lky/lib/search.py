@@ -401,6 +401,8 @@ class Gurobi(Search): # solver
                 runtime = model.cbGet(GRB.Callback.RUNTIME)
                 obj_best = model.cbGet(GRB.Callback.MIPSOL_OBJ)
                 log.append((runtime, obj_best))
+                if len(log) % 10 == 0:
+                    print(log)
 
         model.optimize(my_callback)
 

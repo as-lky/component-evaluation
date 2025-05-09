@@ -32,7 +32,7 @@ parser.add_argument("--search_time_limit", type=int, help="time limit for search
 
 parser.add_argument("--search_ACP_LNS_block", type=int, help="ACP / LNS block parameter")
 parser.add_argument("--search_ACP_LNS_max_turn_ratio", type=float, help="ACP / LNS max_turn_ratio parameter")
-parser.add_argument("--search_ACP_max_turn", type=float, help="ACP max_turn_ratio parameter")
+parser.add_argument("--search_ACP_max_turn", type=float, help="ACP max_turn parameter")
 
 parser.add_argument("--search_LIH_MIH_NALNS_choose", type=float, help="LIH / MIH / NALNS choose parameter")
 parser.add_argument("--search_LIH_MIH_set_pa", type=float, help="LIH / MIH set_pa parameter")

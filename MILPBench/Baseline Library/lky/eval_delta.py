@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit, brentq
 # python eval.py --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/
 
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
-parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC"], help="taskname")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC", "MIKSC"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 args = parser.parse_args()
 
@@ -63,9 +63,20 @@ def domi(a, b):
             return False
     return True 
 
+
+if args.taskname == "IS":
+    INSLIST = ["IS_easy_instance_0", "IS_easy_instance_1", "IS_easy_instance_2"]
+if args.taskname == "SC":
+    INSLIST = ["SC_easy_instance_0", "SC_easy_instance_1", "SC_easy_instance_2"]
+if args.taskname == "MVC":
+    INSLIST = ["MVC_easy_instance_0", "MVC_easy_instance_1", "MVC_easy_instance_2"]
+if args.taskname == "MIKS":
+    INSLIST = ["MIKS_easy_instance_0", "MIKS_easy_instance_1", "MIKS_easy_instance_2"]
+if args.taskname == "MIKSC":
+    INSLIST = ["MIKSC_easy_instance_0", "MIKSC_easy_instance_1", "MIKSC_easy_instance_2"]
+    
 #INSLIST = ["IS_easy_instance_6", "IS_easy_instance_5", "IS_easy_instance_8", "IS_easy_instance_1", "IS_easy_instance_0"]
-INSLIST = ["SC_easy_instance_0", "SC_easy_instance_1", "SC_easy_instance_2"]
-#INSLIST = ["IS_easy_instance_0", "IS_easy_instance_1", "IS_easy_instance_2"]
+#INSLIST = ["SC_easy_instance_0", "SC_easy_instance_1", "SC_easy_instance_2"]
 #INSLIST = ["MVC_easy_instance_0", "MVC_easy_instance_1", "MVC_easy_instance_2"]
 #INSLIST = ["MIKS_easy_instance_0", "MIKS_easy_instance_1", "MIKS_easy_instance_2"]
 

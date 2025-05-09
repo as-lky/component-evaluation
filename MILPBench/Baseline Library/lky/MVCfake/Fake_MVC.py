@@ -67,15 +67,15 @@ class NetworkResourceAllocationWithBandwidth:
         for idx in range(n_instances):
             instance = self.generate_instance()
             model = self.build_model(instance)
-            lp_filename = os.path.join(output_dir, f"network_resource_allocation_{idx+1}.lp")
+            lp_filename = os.path.join(output_dir, f"MVC_fakehard_{idx}.lp")
             model.writeProblem(lp_filename)
             print(f"Saved: {lp_filename}")
 
 if __name__ == '__main__':
     seed = 42
     parameters = {
-        'n_channels': 400,     # 控制决策变量数量（主要是 n_channels 和 n_stations 的乘积）
-        'n_stations': 120,     # 控制决策变量数量和约束数量（每个 station 和 channel 各产生一条约束）
+        'n_channels': 2000,     # 控制决策变量数量（主要是 n_channels 和 n_stations 的乘积）
+        'n_stations': 500,     # 控制决策变量数量和约束数量（每个 station 和 channel 各产生一条约束）
         'demand_interval': (30, 200),
         'capacity_interval': (200, 2000),
         'fixed_cost_interval': (1200, 3000),

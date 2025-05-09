@@ -99,26 +99,26 @@ class SetCoverTelecomIntegration:
         for idx in range(n_instances):
             instance = self.generate_instance()
             model = self.build_model(instance)
-            lp_filename = os.path.join(output_dir, f"set_cover_telecom_{idx+1}.lp")
+            lp_filename = os.path.join(output_dir, f"SC_fakemedium_instance{idx}.lp")
             model.writeProblem(lp_filename)
             print(f"Saved: {lp_filename}")
 
 if __name__ == '__main__':
     seed = 42
     parameters = {
-        'n_rows': 1875,  # 控制约束数量（每一行一个覆盖约束）
-        'n_cols': 500,   # 控制决策变量数量（每一列一个决策变量）
-        'density': 0.17, # 控制稀疏度，影响每个约束涉及多少变量
+        'n_rows': 100000,  # 控制约束数量（每一行一个覆盖约束）
+        'n_cols': 100000,   # 控制决策变量数量（每一列一个决策变量）
+        'density': 0.00005, # 控制稀疏度，影响每个约束涉及多少变量
         'max_coef': 112,
-        'budget': 5000,
-        'average_service_quality': 185,
+        'budget': 1000000,
+        'average_service_quality': 0.5,
         'quality_weight': 0.59,
-        'min_service_quality': 400,
-        'quality_threshold': 15,
+        'min_service_quality': 0,
+        'quality_threshold': 0,
     }
 
     n_instances = 5  # 生成5个实例
-    output_dir = "lp_files_set_cover"
+    output_dir = "SC_fakemedium_instance"
 
     set_cover_telecom_problem = SetCoverTelecomIntegration(parameters, seed=seed)
     set_cover_telecom_problem.save_lp_files(output_dir, n_instances)
