@@ -245,10 +245,12 @@ def split_problem(lp_file):
 
     objective = model.getObjective()
     temp_coeff = []
-    temp_varname = []
+#    temp_varname = []
+    temp_varname = {}
     for i in range(objective.size()):
         temp_coeff.append(objective.getCoeff(i))
-        temp_varname.append(objective.getVar(i).VarName)
+#        temp_varname.append(objective.getVar(i).VarName)
+        temp_varname[objective.getVar(i).VarName] = i
 
     i = 0
     for var in model.getVars():
@@ -259,7 +261,7 @@ def split_problem(lp_file):
         if var.VarName not in temp_varname:
             coefficient.append(0)
         else:
-            coefficient.append(temp_coeff[temp_varname.index(var.VarName)])
+            coefficient.append(temp_coeff[temp_varname[var.VarName]])
         i+=1
 
     for cnstr in model.getConstrs():

@@ -12,7 +12,7 @@ from lib.modify import Modify
 from lib.search import Search
 
 parser = argparse.ArgumentParser(description=" receive select instruction from higher level")
-parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2", "cuda:1"], help="cpu or cuda")
+parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2", "cuda:1", "cuda:3"], help="cpu or cuda")
 parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC", "MIKSC"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")
@@ -69,9 +69,10 @@ if __name__ == "__main__":
     
 
     preprocess_component.work()
-    now = graphencode_component.work()
-    if whole_time_limit is not None:
-        predict_component.time_limit = whole_time_limit - (time.time() - start_time)      
+#    now = graphencode_component.work()
+#    if whole_time_limit is not None:
+#        predict_component.time_limit = whole_time_limit - (time.time() - start_time)      
+    now = 1
     now = predict_component.work(now)
     if whole_time_limit is not None:
         modify_component.time_limit = whole_time_limit - (time.time() - start_time)      
@@ -114,4 +115,4 @@ if __name__ == "__main__":
     # python main.py --device cuda:2 --taskname MVC --instance_path ./Dataset/MVC_medium_instance/MVC_medium_instance/LP/MVC_medium_instance_8.lp --graphencode default --predict gurobi --predict_time_limit 10 --modify default --search gurobi --search_time_limit 2000
     # python main.py --device cuda:2 --taskname MIKS --instance_path ./Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/LP/MIKS_fakemedium_instance_0.lp --graphencode bi --predict gcn --modify np --search gurobi --train_data_dir ./Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/ 
     # python main.py --device cuda:2 --taskname SC --instance_path ./Dataset/SC_fakemedium_instance/SC_fakemedium_instance/LP/SC_fakemedium_instance_0.lp --graphencode default --predict gurobi --modify default --search gurobi --whole_time_limit 4000
-     
+    # python main.py --device cuda:2 --taskname MIKSC --instance_path ./Dataset/MIKSC_medium_instance/MIKSC_medium_instance/LP/MIKSC_medium_instance_5.lp --graphencode default --predict gurobi --modify default --search gurobi --whole_time_limit 4000

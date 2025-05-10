@@ -156,15 +156,18 @@ def gapstart_c(time_list, val_list, lobj): # 初始解gap
     gap = abs(val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
     t = 1 - math.exp(-k * gap * 100) 
-    if t >= 0.95:
-        t = 0.95
+    if t >= 0.99:
+        t = 0.99
     return gap, t # 越小越好
 
 def gapend_c(time_list, val_list, lobj): # 最终gap
     val = val_list[-1]
     gap = abs(val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
-    return gap, 1 - math.exp(-k * gap * 100) # 越小越好
+    t = 1 - math.exp(-k * gap * 100) 
+    if t >= 0.99:
+        t = 0.99
+    return gap, t # 越小越好
 
 
 def ir_c(time_list, val_list, lobj): # 改进比率
@@ -388,7 +391,10 @@ def early_progress_c(time_list, val_list, lobj):
     early_val = val_list[early]
     early_gap = abs(early_val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
-    return early_gap, 1 - math.exp(-k * early_gap * 100) # 越小越好
+    t = 1 - math.exp(-k * early_gap * 100) 
+    if t >= 0.99:
+        t = 0.99
+    return early_gap, t # 越小越好
 
 # 中期(60% time)进展比例
 def medium_progress_c(time_list, val_list, lobj):
@@ -403,7 +409,10 @@ def medium_progress_c(time_list, val_list, lobj):
     medium_val = val_list[medium]
     medium_gap = abs(medium_val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
-    return medium_gap, 1 - math.exp(-k * medium_gap * 100) # 越小越好
+    t = 1 - math.exp(-k * medium_gap * 100) 
+    if t >= 0.99:
+        t = 0.99
+    return medium_gap, t # 越小越好
 
 def overall_efficiency_c(time_list, val_list, lobj):
     total_time = time_list[-1] - time_list[0]

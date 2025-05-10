@@ -607,7 +607,7 @@ class ACP(Search): # solver
                 now_time.append(time.time() - begin_time)
                 print(now_sol[-1], now_time[-1])
                                    
-                if(model.MIPGap != 0):
+                if(model.MIPGap >= 0.0001):
                     if(KK == 2 and PP > 1):
                         KK -= 1
                         PP -= 1

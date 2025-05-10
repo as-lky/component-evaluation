@@ -42,15 +42,18 @@ def gapstart_c(time_list, val_list, lobj): # 初始解gap
     gap = abs(val - lobj) / lobj if val != 0 else 999999999  
     k = 0.01
     t = 1 - math.exp(-k * gap * 100) 
-    if t >= 0.95:
-        t = 0.95
+    if t >= 0.99:
+        t = 0.99
     return gap, t # 越小越好
 
 def gapend_c(time_list, val_list, lobj): # 最终gap
     val = val_list[-1]
     gap = abs(val - lobj) / lobj if val != 0 else 999999999  
     k = 0.01
-    return gap, 1 - math.exp(-k * gap * 100) # 越小越好
+    t = 1 - math.exp(-k * gap * 100) 
+    if t >= 0.99:
+        t = 0.99
+    return gap, t # 越小越好
 
 
 def ir_c(time_list, val_list, lobj): # 改进比率
@@ -104,7 +107,10 @@ def early_progress_c(time_list, val_list, lobj):
     early_val = val_list[early]
     early_gap = abs(early_val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
-    return early_gap, 1 - math.exp(-k * early_gap * 100) # 越小越好
+    t = 1 - math.exp(-k * early_gap * 100) 
+    if t >= 0.99:
+        t = 0.99
+    return early_gap, t # 越小越好
 
 # 中期(60% time)进展比例
 def medium_progress_c(time_list, val_list, lobj):
@@ -119,7 +125,10 @@ def medium_progress_c(time_list, val_list, lobj):
     medium_val = val_list[medium]
     medium_gap = abs(medium_val - lobj) / lobj if lobj != 0 else 999999999  
     k = 0.01
-    return medium_gap, 1 - math.exp(-k * medium_gap * 100) # 越小越好
+    t = 1 - math.exp(-k * medium_gap * 100) 
+    if t >= 0.99:
+        t = 0.99
+    return medium_gap, t # 越小越好
 
 def overall_efficiency_c(time_list, val_list, lobj):
     total_time = time_list[-1] - time_list[0]
@@ -339,7 +348,13 @@ NUM_GPUS = 4
 
 #lobj, _ = work_gurobi(args.instance_path)
 #lobj, _ = 55994, -1
-lobj, _ = 563956, -1
+#lobj, _ = 563956, -1
+#lobj, _ = 25268, -1 # IS medium8
+#lobj, _ = 242, 1 # SC medium2
+lobj, _ = 252240, -1 # IS hard0
+#lobj, _ = 24575, 1 # MVC medium5
+#lobj, _ = 16.52, 1 # MIKSC medium5  bir_gcn_nr_ACP_
+
 def objective(trial):
 #    gpu_id = trial.number % NUM_GPUS
 #    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
@@ -364,16 +379,33 @@ def objective(trial):
     exec = ['python', 'main.py', '--device', 'cuda', '--taskname', 'IS', '--instance_path', './Dataset/IS_fakemedium_instance/IS_fakemedium_instance/LP/IS_fakemedium_instance_10.lp', 
             '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'NALNS']
     
-    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'IS', '--instance_path', './Dataset/IS_fakemedium_instance/IS_fakemedium_instance/LP/IS_fakemedium_instance_10.lp', 
-            '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '600', '--modify', 'np', '--search', 'ACP']
-
-    exec = ['python', 'main.py', '--device', 'cpu', '--taskname', 'IS', '--instance_path', './Dataset/IS_fakehard_instance/IS_fakehard_instance/LP/IS_fakehard_instance_0.lp', 
+    exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'IS', '--instance_path', './Dataset/IS_medium_instance/IS_medium_instance/LP/IS_medium_instance_8.lp', 
+            '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'NALNS']
+    
+    exec = ['python', 'main.py', '--device', 'cuda:3', '--taskname', 'SC', '--instance_path', './Dataset/SC_medium_instance/SC_medium_instance/LP/SC_medium_instance_2.lp', 
+            '--graphencode', 'default', '--predict', 'gurobi', '--whole_time_limit', '600', '--modify', 'default', '--search', 'ACP']
+    
+    exec = ['python', 'main.py', '--device', 'cpu', '--taskname', 'IS', '--instance_path', './Dataset/IS_hard_instance/IS_hard_instance/LP/IS_hard_instance_0.lp', 
             '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '3500', '--modify', 'nr', '--search', 'NALNS']
     
+    #exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'MVC', '--instance_path', './Dataset/MVC_medium_instance/MVC_medium_instance/LP/MVC_medium_instance_5.lp', 
+    #        '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'ACP']
     
-    # block = trial.suggest_int('block', 2, 10)   
-    # ratio = trial.suggest_float('ratio', 0.1, 0.9)
-    # exec += ['--search_ACP_LNS_block', str(block), '--search_ACP_LNS_max_turn_ratio', str(ratio)]
+    
+    # exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'IS', '--instance_path', './Dataset/IS_fakemedium_instance/IS_fakemedium_instance/LP/IS_fakemedium_instance_10.lp', 
+    #         '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '600', '--modify', 'np', '--search', 'ACP']
+
+    # exec = ['python', 'main.py', '--device', 'cpu', '--taskname', 'IS', '--instance_path', './Dataset/IS_fakehard_instance/IS_fakehard_instance/LP/IS_fakehard_instance_0.lp', 
+    #         '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '3500', '--modify', 'nr', '--search', 'NALNS']
+    
+#    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'MIKSC', '--instance_path', './Dataset/MIKSC_medium_instance/MIKSC_medium_instance/LP/MIKSC_medium_instance_5.lp', 
+ #           '--graphencode', 'bir', '--predict', 'gcn', '--whole_time_limit', '4000', '--modify', 'nr', '--search', 'ACP']
+    
+    
+    
+    #block = trial.suggest_int('block', 2, 10)   
+    #ratio = trial.suggest_float('ratio', 0.1, 0.9)
+    #exec += ['--search_ACP_LNS_block', str(block), '--search_ACP_LNS_max_turn_ratio', str(ratio)]
  
     choose = trial.suggest_float('choose', 0.1, 0.9)
 #    set_pa = trial.suggest_float('set_pa', 0.1, 0.9)
@@ -392,20 +424,33 @@ def objective(trial):
     tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
  #   we = f"default_gurobi_default_ACP_{block}_{ratio}_"
 #    we = f"bi_gcn_sr_MIH_{choose}_{set_pa}_"
-    we = f"trir_gcn_nr_NALNS_{choose}_"
+    we = f"trir_gcn_nr_NALNS_{choose}_" # IS hard
 #    we = f"trir_gcn_np_ACP_{block}_{ratio}_"
+#    we = f"bi_gcn_sr_ACP_{block}_{ratio}_" # SC best
+#    we = f"bir_gcn_nr_ACP_{block}_{ratio}_" # MIKSC best
+#    we = f"default_gurobi_default_ACP_{block}_{ratio}_"
+#    we = f"bi_gcn_nr_ACP_{block}_{ratio}_" # MVC best
+
     des = f'./logs/work/{args.taskname}/{we}/{tmp_}/{tmp}_result.txt'
     with open(des, 'r') as f:
         data = json.load(f)
     LISORI, LIS = calc(data, lobj, type_)
     result___ = calc_api([LIS]) * 1e7
-    with open('./tmp.txt', 'a') as f:
+    with open(f'./{args.taskname}_tmp.txt', 'a') as f:
 #        f.write(f"{result___} {choose} {set_pa} {LISORI} {LIS}\n")
         f.write(f"{result___} {choose} {LISORI} {LIS}\n")
 #        f.write(f"{result___} {block} {ratio} {LISORI} {LIS}\n")
 
     return result___
 
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/ISmedium", study_name="ISmediumNALNS")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/SCmedium", study_name="SCmediumgurobiACP")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/MIKSCmedium", study_name="MIKSCmediumACP")
 study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/IShard", study_name="IShardNALNS")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/MVCmedium", study_name="MVCmediumACP")
+
 #study.optimize(objective, n_trials=2, n_jobs=2)  # 并行4个worker（=4块GPU）
 study.optimize(objective, n_trials=5)
+
+
+# exec  参数   we  输出  study
