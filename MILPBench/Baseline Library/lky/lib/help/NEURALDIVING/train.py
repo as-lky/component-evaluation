@@ -138,6 +138,9 @@ class GraphDataset(torch_geometric.data.Dataset):
                 constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2(instance, self.random_feature)
                 
                 with open(solution_path, "rb") as f:
+                    # print(solution_path)
+                    # tmp = pickle.load(f)
+                    # print("!!!!!", type(tmp[0]), type(tmp[1]))
                     solution = pickle.load(f)[0]
                 sol = []
                 for i in range(n):
@@ -566,7 +569,7 @@ def c(a):
     tmp = os.path.basename(a)
     tmp = re.match(r".*_([0-9]+)", tmp)
     tmp = tmp.group(1)
-    return int(tmp) <= 3
+    return int(tmp) <= 3 or int(tmp) >= 23 # 20个
 
 def d(a):
     tmp = os.path.basename(a)

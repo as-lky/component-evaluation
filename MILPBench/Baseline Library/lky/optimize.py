@@ -241,7 +241,7 @@ def calc(data, lobj, type):
     elif type == 'medium':
         if args.taskname == 'IS':
             threshold = 600
-        if args.taskname == 'MIKS':
+        if args.taskname == 'MIKS' or args.taskname == 'MIKSC':
             threshold = 4000
         if args.taskname == 'SC':
             threshold = 600
@@ -250,7 +250,7 @@ def calc(data, lobj, type):
     elif type == 'hard':
         if args.taskname == 'IS':
             threshold = 3500
-        if args.taskname == 'MIKS':
+        if args.taskname == 'MIKS' or args.taskname == 'MIKSC':
             threshold = 8000
         if args.taskname == 'SC':
             threshold = 3500
@@ -350,8 +350,16 @@ NUM_GPUS = 4
 #lobj, _ = 55994, -1
 #lobj, _ = 563956, -1
 #lobj, _ = 25268, -1 # IS medium8
-#lobj, _ = 242, 1 # SC medium2
-lobj, _ = 252240, -1 # IS hard0
+lobj, _ = 242, 1 # SC medium2
+#lobj, _ = 252240, -1 # IS hard0
+#lobj, _ = 246449, 1 # MVC hard0
+#lobj, _ = 5765, 1 # MVC fakemedium3
+#lobj, _ = 839653, 1 # SC fakemedium0
+#lobj, _ = 2624, 1# SC hard2
+#lobj, _ = 162, 1# MIKSC hard0
+#lobj, _ = 11932, -1# MIKSC fakemedium5
+#lobj, _ = 75221, -1# MIKSC fakehard1
+
 #lobj, _ = 24575, 1 # MVC medium5
 #lobj, _ = 16.52, 1 # MIKSC medium5  bir_gcn_nr_ACP_
 
@@ -388,7 +396,33 @@ def objective(trial):
     exec = ['python', 'main.py', '--device', 'cpu', '--taskname', 'IS', '--instance_path', './Dataset/IS_hard_instance/IS_hard_instance/LP/IS_hard_instance_0.lp', 
             '--graphencode', 'trir', '--predict', 'gcn', '--whole_time_limit', '3500', '--modify', 'nr', '--search', 'NALNS']
     
-    #exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'MVC', '--instance_path', './Dataset/MVC_medium_instance/MVC_medium_instance/LP/MVC_medium_instance_5.lp', 
+    exec = ['python', 'main.py', '--device', 'cpu', '--taskname', 'MVC', '--instance_path', './Dataset/MVC_hard_instance/MVC_hard_instance/LP/MVC_hard_instance_0.lp', 
+           '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '3500', '--modify', 'nr', '--search', 'ACP']
+    
+    exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'MVC', '--instance_path', './Dataset/MVC_fakemedium_instance/MVC_fakemedium_instance/LP/MVC_fakemedium_instance_3.lp', 
+           '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'ACP']
+    
+    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'SC', '--instance_path', './Dataset/SC_fakemedium_instance/SC_fakemedium_instance/LP/SC_fakemedium_instance_0.lp', 
+            '--graphencode', 'bi', '--predict', 'gat', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'ACP']
+    
+    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'SC', '--instance_path', './Dataset/SC_hard_instance/SC_hard_instance/LP/SC_hard_instance_2.lp', 
+            '--graphencode', 'bi', '--predict', 'gat', '--whole_time_limit', '3500', '--modify', 'nr', '--search', 'ACP']
+    
+    exec = ['python', 'main.py', '--device', 'cpu', '--taskname', 'MIKSC', '--instance_path', './Dataset/MIKSC_hard_instance/MIKSC_hard_instance/LP/MIKSC_hard_instance_0.lp', 
+            '--graphencode', 'bir', '--predict', 'gcn', '--whole_time_limit', '8000', '--modify', 'nr', '--search', 'ACP']
+    
+    exec = ['python', 'main.py', '--device', 'cuda:1', '--taskname', 'MIKSC', '--instance_path', './Dataset/MIKSC_fakemedium_instance/MIKSC_fakemedium_instance/LP/MIKSC_fakemedium_instance_5.lp', 
+            '--graphencode', 'bir', '--predict', 'gcn', '--whole_time_limit', '4000', '--modify', 'nr', '--search', 'ACP']
+    
+    exec = ['python', 'main.py', '--device', 'cpu', '--taskname', 'MIKSC', '--instance_path', './Dataset/MIKSC_fakehard_instance/MIKSC_fakehard_instance/LP/MIKSC_fakehard_instance_1.lp', 
+            '--graphencode', 'bir', '--predict', 'gcn', '--whole_time_limit', '8000', '--modify', 'nr', '--search', 'ACP']
+    
+    exec = ['python', 'main.py', '--device', 'cuda:2', '--taskname', 'SC', '--instance_path', './Dataset/SC_medium_instance/SC_medium_instance/LP/SC_medium_instance_2.lp', 
+            '--graphencode', 'bir', '--predict', 'gat', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'ACP']
+    
+    
+    #exec = ['python', 'main.py', '--
+    # device', 'cuda:2', '--taskname', 'MVC', '--instance_path', './Dataset/MVC_medium_instance/MVC_medium_instance/LP/MVC_medium_instance_5.lp', 
     #        '--graphencode', 'bi', '--predict', 'gcn', '--whole_time_limit', '600', '--modify', 'nr', '--search', 'ACP']
     
     
@@ -403,15 +437,16 @@ def objective(trial):
     
     
     
-    #block = trial.suggest_int('block', 2, 10)   
-    #ratio = trial.suggest_float('ratio', 0.1, 0.9)
-    #exec += ['--search_ACP_LNS_block', str(block), '--search_ACP_LNS_max_turn_ratio', str(ratio)]
+    block = trial.suggest_int('block', 2, 10)   
+    ratio = trial.suggest_float('ratio', 0.1, 0.9)
+    
+    exec += ['--search_ACP_LNS_block', str(block), '--search_ACP_LNS_max_turn_ratio', str(ratio)]
  
-    choose = trial.suggest_float('choose', 0.1, 0.9)
+#    choose = trial.suggest_float('choose', 0.1, 0.9)
 #    set_pa = trial.suggest_float('set_pa', 0.1, 0.9)
     
 #    exec += ['--search_LIH_MIH_NALNS_choose', str(choose), '--search_LIH_MIH_set_pa', str(set_pa)]
-    exec += ['--search_LIH_MIH_NALNS_choose', str(choose)]
+#    exec += ['--search_LIH_MIH_NALNS_choose', str(choose)]
     
     subprocess.run(exec)
     
@@ -424,12 +459,18 @@ def objective(trial):
     tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
  #   we = f"default_gurobi_default_ACP_{block}_{ratio}_"
 #    we = f"bi_gcn_sr_MIH_{choose}_{set_pa}_"
-    we = f"trir_gcn_nr_NALNS_{choose}_" # IS hard
+#    we = f"trir_gcn_nr_NALNS_{choose}_" # IS hard
+
 #    we = f"trir_gcn_np_ACP_{block}_{ratio}_"
 #    we = f"bi_gcn_sr_ACP_{block}_{ratio}_" # SC best
+    we = f"bir_gat_nr_ACP_{block}_{ratio}_" # SC cibest with gat
 #    we = f"bir_gcn_nr_ACP_{block}_{ratio}_" # MIKSC best
 #    we = f"default_gurobi_default_ACP_{block}_{ratio}_"
 #    we = f"bi_gcn_nr_ACP_{block}_{ratio}_" # MVC best
+#    we = f"bi_gcn_nr_ACP_{block}_{ratio}_" # MVC best
+#    we = f"bi_gat_nr_ACP_{block}_{ratio}_" # SC cibest
+#    we = f"bir_gcn_nr_ACP_{block}_{ratio}_" # MIKSC cibest
+
 
     des = f'./logs/work/{args.taskname}/{we}/{tmp_}/{tmp}_result.txt'
     with open(des, 'r') as f:
@@ -438,16 +479,25 @@ def objective(trial):
     result___ = calc_api([LIS]) * 1e7
     with open(f'./{args.taskname}_tmp.txt', 'a') as f:
 #        f.write(f"{result___} {choose} {set_pa} {LISORI} {LIS}\n")
-        f.write(f"{result___} {choose} {LISORI} {LIS}\n")
-#        f.write(f"{result___} {block} {ratio} {LISORI} {LIS}\n")
+#        f.write(f"{result___} {choose} {LISORI} {LIS}\n")
+        f.write(f"{result___} {block} {ratio} {LISORI} {LIS}\n")
 
     return result___
 
 #study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/ISmedium", study_name="ISmediumNALNS")
 #study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/SCmedium", study_name="SCmediumgurobiACP")
 #study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/MIKSCmedium", study_name="MIKSCmediumACP")
-study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/IShard", study_name="IShardNALNS")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/IShard", study_name="IShardNALNS")
 #study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/MVCmedium", study_name="MVCmediumACP")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/MVChard", study_name="MVChardACP")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/MVCfakemedium", study_name="MVCfakemediumACP")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/SCfakemedium", study_name="SCfakemediumgatACP")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/SChard", study_name="SChardgatACP")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/MIKSChard", study_name="MIKSChardACP")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/MIKSCfakemedium", study_name="MIKSCfakemediumACP")
+#study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/MIKSCfakehard", study_name="MIKSCfakehardACP")
+
+study = optuna.load_study(storage="postgresql://luokeyun:lky883533600@localhost:5432/SCmedium", study_name="SCmediumgatACP")
 
 #study.optimize(objective, n_trials=2, n_jobs=2)  # 并行4个worker（=4块GPU）
 study.optimize(objective, n_trials=5)

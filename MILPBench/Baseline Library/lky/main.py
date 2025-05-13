@@ -13,7 +13,7 @@ from lib.search import Search
 
 parser = argparse.ArgumentParser(description=" receive select instruction from higher level")
 parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2", "cuda:1", "cuda:3"], help="cpu or cuda")
-parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC", "MIKSC"], help="taskname")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC", "MIKSC", "MT"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, help="the train instances input folder")
 parser.add_argument("--whole_time_limit", type=int, help="time limit for whole process")
@@ -116,3 +116,9 @@ if __name__ == "__main__":
     # python main.py --device cuda:2 --taskname MIKS --instance_path ./Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/LP/MIKS_fakemedium_instance_0.lp --graphencode bi --predict gcn --modify np --search gurobi --train_data_dir ./Dataset/MIKS_fakemedium_instance/MIKS_fakemedium_instance/ 
     # python main.py --device cuda:2 --taskname SC --instance_path ./Dataset/SC_fakemedium_instance/SC_fakemedium_instance/LP/SC_fakemedium_instance_0.lp --graphencode default --predict gurobi --modify default --search gurobi --whole_time_limit 4000
     # python main.py --device cuda:2 --taskname MIKSC --instance_path ./Dataset/MIKSC_medium_instance/MIKSC_medium_instance/LP/MIKSC_medium_instance_5.lp --graphencode default --predict gurobi --modify default --search gurobi --whole_time_limit 4000
+    # python main.py --device cpu --taskname MIKSC --instance_path ./Dataset/MIKSC_hard_instance/MIKSC_hard_instance/LP/MIKSC_hard_instance_0.lp --graphencode bir --predict gcn --modify nr --search ACP --search_ACP_block 2 --search_ACP_LNS_max_turn_ratio 0.11855506163451457--whole_time_limit 8000
+    # python main.py --device cuda:2 --taskname MT --instance_path ./Dataset/MT_easy_instance/MT_easy_instance/LP/MT_easy_instance_0.lp --graphencode bi --predict gcn  --modify nr --search gurobi --whole_time_limit 200 --train_data_dir ./Dataset/MT_easy_instance/MT_easy_instance/
+    # python main.py --device cuda:1 --taskname MT --instance_path ./Dataset/MT_medium_instance/MT_medium_instance/LP/MT_medium_instance_0.lp --graphencode bir --predict gcn --modify nr --search gurobi --whole_time_limit 200 --train_data_dir ./Dataset/MT_medium_instance/MT_medium_instance/
+    # python main.py --device cuda:2 --taskname MT --instance_path ./Dataset/MT_medium_instance/MT_medium_instance/LP/MT_medium_instance_0.lp --graphencode bi --predict gat --modify nr --search gurobi --whole_time_limit 200 --train_data_dir ./Dataset/MT_medium_instance/MT_medium_instance/
+    # python main.py --device cuda:2 --taskname SC --instance_path ./Dataset/SC_medium_instance/SC_medium_instance/LP/SC_medium_instance_0.lp --graphencode bir --predict gat --modify nr --search ACP --whole_time_limit 600
+    

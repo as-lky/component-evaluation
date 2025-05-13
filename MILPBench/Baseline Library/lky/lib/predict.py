@@ -15,7 +15,7 @@ from .help.NEURALDIVING.test import GraphDataset
 from .help.NEURALDIVING.help import get_a_new2 as get_a_new2_gcn, get_a_new3 as get_a_new3_gcn
 from .help.LIGHT.help import get_a_new2 as get_a_new2_gat
 
-from .help.LIGHT.EGAT_models import SpGAT
+from .help.LIGHT.EGAT_models import SpGAT, SpGAT2
 import torch_geometric
 
 class Predict(Component):
@@ -628,8 +628,16 @@ class GAT(Predict):
         for i in range(m):
             for j in range(var_size - con_size):
                 constraint_features[i].append(0)
+
         features = variable_features + constraint_features
         features = torch.as_tensor(features)
+        
+        
+        print("==================")
+        print(features.shape)
+        print("==================")
+        
+        
 
         idx_test = torch.tensor(range(n))
 
@@ -739,38 +747,51 @@ class GAT(Predict):
                 color_edge_to_num[now_color].append(i)
 
         path_model = model_path
-        model = SpGAT(nfeat=features.shape[1],    # Feature dimension
+        model = SpGAT2(nfeat=features.shape[1],    # Feature dimension
                     nhid=64,                    # Feature dimension of each hidden layer
-                    nclass=1,                   # Number of classes
+#                    nclass=1,                   # Number of classes
+                    nclass=2,                   # Number of classes 
                     dropout=0.5,                # Dropout
                     nheads=6,                   # Number of heads
-                    alpha=2e-4)                  # LeakyReLU alpha coefficient
+                    alpha=0.2)                  # LeakyReLU alpha coefficient
         state_dict_load = torch.load(path_model)
         model.load_state_dict(state_dict_load)
         model.to(self.device)
 
         def compute_test(features, edgeA, edgeB, edge_features):
             model.eval()
-            output, select, new_edge_feat = model(features, edgeA, edgeB, edge_features)
+#            output, select, new_edge_feat = model(features, edgeA, edgeB, edge_features)
+            output, new_edge_feat = model(features, edgeA, edgeB, edge_features)
             #loss_test = F.nll_loss(output[idx_test], labels[idx_test])
             #acc_test = accuracy(output[idx_test], labels[idx_test])
             #print("Test set results:",
             #      "loss= {:.4f}".format(loss_test.data.item()))
-            return(output, select, new_edge_feat)
+#            return(output, select, new_edge_feat)
+            return (output, new_edge_feat)
+
 
         predict = [0] * (n + m)
         select = [0] * (n + m)
         new_edge_feat = [0] * edge_num
         for i in range(partition_num):
-            now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
+#            now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
+            now_predict, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
+  
             for j in range(len(color_site_to_num[i])):
                 if(color_site_to_num[i][j] < n):
-                    predict[color_site_to_num[i][j]] = now_predict[j].cpu().detach().numpy()
-                    select[color_site_to_num[i][j]] = now_select[j].cpu().detach().numpy()
+                    tmp = now_predict[j].cpu().detach().numpy()
+                    predict[color_site_to_num[i][j]] = 1 if tmp[1] > 0.5 else 0
+                    select[color_site_to_num[i][j]] = tmp[predict[color_site_to_num[i][j]]]
+#                    select[color_site_to_num[i][j]] = now_select[j].cpu().detach().numpy()
             for j in range(len(color_edge_to_num[i])):
                 new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
         self.end()
+        
+        with open('./ACPdebugtmp.txt', 'w') as f:
+            for i in range(len(predict)):
+                f.write(i, " ", predict[i], select[i], '\n')
+        
         return Cantsol(predict, select)
 
 class GTRAN(Predict):

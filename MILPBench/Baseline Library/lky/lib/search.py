@@ -459,11 +459,13 @@ class ACP(Search): # solver
         
         #Initialize the initial solution and initial answer, where the initial solution is the worst initial solution
         
-        ans, ansx = input.objval, []
-        
+        ans = input.objval        
         tmp = gp.read(self.instance)
+
+        ansx = np.zeros(tmp.NumVars)
+
         for var in tmp.getVars():
-            ansx.append(input.cansol[var.VarName])
+            ansx[value_to_num[var]] = input.cansol[var.VarName]
             
         print(f"初始解目标值为：{ans}")
         
@@ -607,7 +609,8 @@ class ACP(Search): # solver
                 now_time.append(time.time() - begin_time)
                 print(now_sol[-1], now_time[-1])
                                    
-                if(model.MIPGap >= 0.0001):
+#                if(model.MIPGap >= 0.0001):
+                if(model.MIPGap != 0):
                     if(KK == 2 and PP > 1):
                         KK -= 1
                         PP -= 1

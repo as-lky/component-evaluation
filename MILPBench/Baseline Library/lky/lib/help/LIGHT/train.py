@@ -202,7 +202,7 @@ def c(a):
     tmp = os.path.basename(a)
     tmp = re.match(r".*_([0-9]+)", tmp)
     tmp = tmp.group(1)
-    return int(tmp) <= 3
+    return int(tmp) <= 3 or int(tmp) >= 23 # 20个
 
 log_dir = args.log_dir
 train_data_dir = args.train_data_dir

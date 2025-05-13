@@ -117,18 +117,20 @@ def get_a_new2(instance, random_feature = False):
     for i in range(n):
         now_variable_features = []
         now_variable_features.append(coefficient[i])
-        if(lower_bound[i] == float("-inf")):
-            now_variable_features.append(0)
-            now_variable_features.append(0)
-        else:
-            now_variable_features.append(1)
-            now_variable_features.append(lower_bound[i])
-        if(upper_bound[i] == float("inf")):
-            now_variable_features.append(0)
-            now_variable_features.append(0)
-        else:
-            now_variable_features.append(1)
-            now_variable_features.append(upper_bound[i])
+        now_variable_features.append(0)
+        now_variable_features.append(1)        
+        # if(lower_bound[i] == float("-inf")):
+        #     now_variable_features.append(0)
+        #     now_variable_features.append(0)
+        # else:
+        #     now_variable_features.append(1)
+        #     now_variable_features.append(lower_bound[i])
+        # if(upper_bound[i] == float("inf")):
+        #     now_variable_features.append(0)
+        #     now_variable_features.append(0)
+        # else:
+        #     now_variable_features.append(1)
+        #     now_variable_features.append(upper_bound[i])
         if(value_type[i] == 'C'):
             now_variable_features.append(0)
         else:
@@ -140,7 +142,19 @@ def get_a_new2(instance, random_feature = False):
     for i in range(m):
         now_constraint_features = []
         now_constraint_features.append(constraint[i])
-        now_constraint_features.append(constraint_type[i])
+#        now_constraint_features.append(constraint_type[i])
+        if constraint_type[i] == 1:
+            now_constraint_features.append(1)
+            now_constraint_features.append(0)
+            now_constraint_features.append(0)
+        elif constraint_type[i] == 2:
+            now_constraint_features.append(0)
+            now_constraint_features.append(1)
+            now_constraint_features.append(0)
+        elif constraint_type[i] == 3:
+            now_constraint_features.append(0)
+            now_constraint_features.append(0)
+            now_constraint_features.append(1)
         if random_feature:
             now_constraint_features.append(random.random())
         constraint_features.append(now_constraint_features)
