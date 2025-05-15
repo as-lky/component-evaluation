@@ -1,0 +1,35 @@
+nohup: ignoring input
+original problem has 200000 variables (200000 bin, 0 int, 0 impl, 0 cont) and 200000 constraints
+feasible solution found by trivial heuristic after 3.4 seconds, objective value 9.905609e+04
+presolving:
+(round 1, fast)       3606 del vars, 0 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 0 clqs
+(round 2, exhaustive) 3606 del vars, 0 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 200000 upgd conss, 0 impls, 0 clqs
+(round 3, fast)       13364 del vars, 0 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 200000 upgd conss, 0 impls, 0 clqs
+(round 4, fast)       13531 del vars, 3 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 9758 chg coeffs, 200000 upgd conss, 0 impls, 0 clqs
+(round 5, exhaustive) 13920 del vars, 10 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 9939 chg coeffs, 200000 upgd conss, 0 impls, 180 clqs
+   (35.1s) probing: 51/186076 (0.0%) - 0 fixings, 0 aggregations, 0 implications, 0 bound changes
+   (35.1s) probing aborted: 50/50 successive totally useless probings
+   (37.9s) symmetry computation started: requiring (bin +, int +, cont +), (fixed: bin -, int -, cont -)
+   (42.2s) no symmetry present (symcode time: 1.24)
+presolving (6 rounds: 6 fast, 3 medium, 3 exhaustive):
+ 13924 deleted vars, 10 deleted constraints, 0 added constraints, 0 tightened bounds, 0 added holes, 0 changed sides, 10315 changed coefficients
+ 0 implications, 187 cliques
+presolved problem has 186076 variables (186076 bin, 0 int, 0 impl, 0 cont) and 199990 constraints
+ 199990 constraints of type <logicor>
+Presolving Time: 44.55
+
+ time | node  | left  |LP iter|LP it/n|mem/heur|mdpt |vars |cons |rows |cuts |sepa|confs|strbr|  dualbound   | primalbound  |  gap   | compl. 
+t49.6s|     1 |     0 |     0 |     - | trivial|   0 | 186k| 199k|   0 |   0 |  0 |   0 |   0 | 7.927096e-01 | 9.211576e+04 |  Large | unknown
+p85.6s|     1 |     0 |     0 |     - |   locks|   0 | 186k| 199k| 199k|   0 |  0 |   0 |   0 | 7.927096e-01 | 2.545492e+04 |  Large | unknown
+i86.1s|     1 |     0 |     0 |     - |  oneopt|   0 | 186k| 199k| 199k|   0 |  0 |   0 |   0 | 7.927096e-01 | 2.531754e+04 |  Large | unknown
+  600s|     1 |     0 | 77875 |     - |  1116M |   0 | 186k| 199k| 199k|   0 |  0 |   0 |   0 | 7.927096e-01 | 2.531754e+04 |  Large | unknown
+(node 1) LP solver hit time limit in LP 1 -- using pseudo solution instead
+
+SCIP Status        : solving was interrupted [time limit reached]
+Solving Time (sec) : 600.04
+Solving Nodes      : 1
+Primal Bound       : +2.53175397728721e+04 (5 solutions)
+Dual Bound         : +7.92709639530871e-01
+Gap                : 3193697.39 %
+[✓] 求解状态: timelimit
+目标值: 25317.539773

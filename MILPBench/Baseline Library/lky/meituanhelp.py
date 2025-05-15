@@ -5,8 +5,9 @@ import re
 import shutil
 #nn = "MT_hard_instance"
 #instance_dir = "./Dataset/meituan_data/C_20000/C_20000/"
-nn = "MT_2000_instance"
-instance_dir = "./Dataset/meituan_data/C_2000/C_2000/"
+nn = "MT_easy_instance"
+instance_dir = "./Dataset/meituan_data/C_5000/C_5000/"
+#nn = "MT_medium_instance"
 
 to_dir = f"./Dataset/{nn}/{nn}"
 num = 0
@@ -54,4 +55,4 @@ for i in os.listdir(instance_dir):
 # C100 10000
 # C200 20000
 # C500 50000
-# C1000 100000
+# C1000 100000a

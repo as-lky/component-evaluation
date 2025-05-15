@@ -236,6 +236,7 @@ class Nr(Modify): # build a new problem based on the prediction
 
         color = np.zeros(n) # 1: discard
         
+        
         if type(input.logits) == list:
             now_sol = np.array(input.logits)
         else:

@@ -1,0 +1,32 @@
+nohup: ignoring input
+original problem has 100000 variables (100000 bin, 0 int, 0 impl, 0 cont) and 300000 constraints
+feasible solution found by trivial heuristic after 3.9 seconds, objective value 4.981232e+04
+presolving:
+(round 1, fast)       1813 del vars, 1555 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 298436 clqs
+(round 2, fast)       2612 del vars, 6115 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 293876 clqs
+(round 3, exhaustive) 2670 del vars, 6253 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 293747 upgd conss, 0 impls, 293747 clqs
+   (13.8s) probing: 51/97310 (0.1%) - 0 fixings, 0 aggregations, 0 implications, 0 bound changes
+   (13.8s) probing aborted: 50/50 successive totally useless probings
+   (14.7s) symmetry computation started: requiring (bin +, int +, cont +), (fixed: bin -, int -, cont -)
+   (15.6s) no symmetry present (symcode time: 0.46)
+presolving (4 rounds: 4 fast, 2 medium, 2 exhaustive):
+ 2690 deleted vars, 6365 deleted constraints, 0 added constraints, 0 tightened bounds, 0 added holes, 0 changed sides, 0 changed coefficients
+ 0 implications, 293635 cliques
+presolved problem has 97310 variables (97310 bin, 0 int, 0 impl, 0 cont) and 293635 constraints
+ 293635 constraints of type <setppc>
+Presolving Time: 16.70
+
+ time | node  | left  |LP iter|LP it/n|mem/heur|mdpt |vars |cons |rows |cuts |sepa|confs|strbr|  dualbound   | primalbound  |  gap   | compl. 
+t23.6s|     1 |     0 |     0 |     - | trivial|   0 |  97k| 293k|   0 |   0 |  0 |   0 |   0 | 5.340042e+02 | 4.895646e+04 |9067.80%| unknown
+p 390s|     1 |     0 |     0 |     - |  clique|   0 |  97k| 293k| 293k|   0 |  0 |   0 |   0 | 5.340042e+02 | 3.125667e+04 |5753.26%| unknown
+  600s|     1 |     0 | 78823 |     - |  1195M |   0 |  97k| 293k| 293k|   0 |  0 |   0 |   0 | 5.340042e+02 | 3.125667e+04 |5753.26%| unknown
+(node 1) LP solver hit time limit in LP 1 -- using pseudo solution instead
+
+SCIP Status        : solving was interrupted [time limit reached]
+Solving Time (sec) : 600.12
+Solving Nodes      : 1
+Primal Bound       : +3.12566745533676e+04 (4 solutions)
+Dual Bound         : +5.34004226592524e+02
+Gap                : 5753.26 %
+[✓] 求解状态: timelimit
+目标值: 31256.674553

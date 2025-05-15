@@ -1,0 +1,35 @@
+nohup: ignoring input
+original problem has 2000000 variables (1000000 bin, 0 int, 0 impl, 1000000 cont) and 2000000 constraints
+feasible solution found by trivial heuristic after 62.3 seconds, objective value 1.088773e+06
+presolving:
+(round 1, fast)       37546 del vars, 0 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 0 clqs
+(round 2, exhaustive) 37553 del vars, 7 del conss, 0 add conss, 3 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 0 clqs
+(round 3, exhaustive) 37558 del vars, 27 del conss, 0 add conss, 3 chg bounds, 0 chg sides, 0 chg coeffs, 140472 upgd conss, 0 impls, 0 clqs
+(round 4, fast)       50934 del vars, 27 del conss, 0 add conss, 3 chg bounds, 0 chg sides, 0 chg coeffs, 140472 upgd conss, 0 impls, 0 clqs
+(round 5, exhaustive) 84093 del vars, 44 del conss, 0 add conss, 3 chg bounds, 0 chg sides, 13717 chg coeffs, 140473 upgd conss, 0 impls, 454 clqs
+(round 6, exhaustive) 85787 del vars, 76 del conss, 0 add conss, 3 chg bounds, 0 chg sides, 13892 chg coeffs, 140886 upgd conss, 0 impls, 478 clqs
+   (320.9s) probing: 51/963629 (0.0%) - 0 fixings, 0 aggregations, 0 implications, 0 bound changes
+   (320.9s) probing aborted: 50/50 successive totally useless probings
+   (330.5s) symmetry computation started: requiring (bin +, int +, cont +), (fixed: bin -, int -, cont -)
+   (359.9s) no symmetry present (symcode time: 8.09)
+presolving (7 rounds: 7 fast, 5 medium, 5 exhaustive):
+ 85887 deleted vars, 76 deleted constraints, 0 added constraints, 3 tightened bounds, 0 added holes, 0 changed sides, 13911 changed coefficients
+ 413 implications, 479 cliques
+presolved problem has 1914113 variables (958434 bin, 0 int, 5195 impl, 950484 cont) and 1999924 constraints
+    550 constraints of type <varbound>
+      3 constraints of type <setppc>
+1858761 constraints of type <linear>
+ 140610 constraints of type <logicor>
+Presolving Time: 325.86
+
+ time | node  | left  |LP iter|LP it/n|mem/heur|mdpt |vars |cons |rows |cuts |sepa|confs|strbr|  dualbound   | primalbound  |  gap   | compl. 
+t 386s|     1 |     0 |     0 |     - | trivial|   0 |1914k|1999k|   0 |   0 |  0 |   0 |   0 | 8.853500e+00 | 1.047137e+06 |  Large | unknown
+
+SCIP Status        : solving was interrupted [time limit reached]
+Solving Time (sec) : 8011.63
+Solving Nodes      : 1
+Primal Bound       : +1.04713688550001e+06 (3 solutions)
+Dual Bound         : +8.85350000000000e+00
+Gap                : 11827277.71 %
+[✓] 求解状态: timelimit
+目标值: 1047136.885500

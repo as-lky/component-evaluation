@@ -747,50 +747,83 @@ class GAT(Predict):
                 color_edge_to_num[now_color].append(i)
 
         path_model = model_path
-        model = SpGAT2(nfeat=features.shape[1],    # Feature dimension
-                    nhid=64,                    # Feature dimension of each hidden layer
-#                    nclass=1,                   # Number of classes
-                    nclass=2,                   # Number of classes 
-                    dropout=0.5,                # Dropout
-                    nheads=6,                   # Number of heads
-                    alpha=0.2)                  # LeakyReLU alpha coefficient
-        state_dict_load = torch.load(path_model)
-        model.load_state_dict(state_dict_load)
-        model.to(self.device)
+        if self.taskname == 'MIKSC':
+            model = SpGAT2(nfeat=features.shape[1],    # Feature dimension
+                nhid=64,                    # Feature dimension of each hidden layer
+                nclass=2,                   # Number of classes 
+                dropout=0.5,                # Dropout
+                nheads=6,                   # Number of heads
+                alpha=0.2)                  # LeakyReLU alpha coefficient
+            state_dict_load = torch.load(path_model)
+            model.load_state_dict(state_dict_load)
+            model.to(self.device)
 
-        def compute_test(features, edgeA, edgeB, edge_features):
-            model.eval()
-#            output, select, new_edge_feat = model(features, edgeA, edgeB, edge_features)
-            output, new_edge_feat = model(features, edgeA, edgeB, edge_features)
-            #loss_test = F.nll_loss(output[idx_test], labels[idx_test])
-            #acc_test = accuracy(output[idx_test], labels[idx_test])
-            #print("Test set results:",
-            #      "loss= {:.4f}".format(loss_test.data.item()))
-#            return(output, select, new_edge_feat)
-            return (output, new_edge_feat)
+            def compute_test(features, edgeA, edgeB, edge_features):
+                model.eval()
+                output, new_edge_feat = model(features, edgeA, edgeB, edge_features)
+                #loss_test = F.nll_loss(output[idx_test], labels[idx_test])
+                #acc_test = accuracy(output[idx_test], labels[idx_test])
+                #print("Test set results:",
+                #      "loss= {:.4f}".format(loss_test.data.item()))
+                return(output, new_edge_feat)
 
 
-        predict = [0] * (n + m)
-        select = [0] * (n + m)
-        new_edge_feat = [0] * edge_num
-        for i in range(partition_num):
-#            now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
-            now_predict, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
-  
-            for j in range(len(color_site_to_num[i])):
-                if(color_site_to_num[i][j] < n):
-                    tmp = now_predict[j].cpu().detach().numpy()
-                    predict[color_site_to_num[i][j]] = 1 if tmp[1] > 0.5 else 0
-                    select[color_site_to_num[i][j]] = tmp[predict[color_site_to_num[i][j]]]
-#                    select[color_site_to_num[i][j]] = now_select[j].cpu().detach().numpy()
-            for j in range(len(color_edge_to_num[i])):
-                new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
+            predict = [0] * (n + m)
+            select = [0] * (n + m)
+            new_edge_feat = [0] * edge_num
+            for i in range(partition_num):
+                now_predict, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
+    
+                for j in range(len(color_site_to_num[i])):
+                    if(color_site_to_num[i][j] < n):
+                        tmp = now_predict[j].cpu().detach().numpy()
+                        predict[color_site_to_num[i][j]] = 1 if tmp[1] > 0.5 else 0
+                        select[color_site_to_num[i][j]] = tmp[predict[color_site_to_num[i][j]]]
+                for j in range(len(color_edge_to_num[i])):
+                    new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
+
+        else :
+            model = SpGAT(nfeat=features.shape[1],    # Feature dimension
+                        nhid=64,                    # Feature dimension of each hidden layer
+                        nclass=1,                   # Number of classes
+    #                    nclass=2,                   # Number of classes 
+                        dropout=0.5,                # Dropout
+                        nheads=6,                   # Number of heads
+                        alpha=0.2)                  # LeakyReLU alpha coefficient
+            state_dict_load = torch.load(path_model)
+            model.load_state_dict(state_dict_load)
+            model.to(self.device)
+
+            def compute_test(features, edgeA, edgeB, edge_features):
+                model.eval()
+                output, select, new_edge_feat = model(features, edgeA, edgeB, edge_features)
+    #            output, new_edge_feat = model(features, edgeA, edgeB, edge_features)
+                #loss_test = F.nll_loss(output[idx_test], labels[idx_test])
+                #acc_test = accuracy(output[idx_test], labels[idx_test])
+                #print("Test set results:",
+                #      "loss= {:.4f}".format(loss_test.data.item()))
+                return(output, select, new_edge_feat)
+    #            return (output, new_edge_feat)
+
+
+            predict = [0] * (n + m)
+            select = [0] * (n + m)
+            new_edge_feat = [0] * edge_num
+            for i in range(partition_num):
+                now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
+    #            now_predict, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
+    
+                for j in range(len(color_site_to_num[i])):
+                    if(color_site_to_num[i][j] < n):
+    #                   tmp = now_predict[j].cpu().detach().numpy()
+    #                    predict[color_site_to_num[i][j]] = 1 if tmp[1] > 0.5 else 0
+    #                   select[color_site_to_num[i][j]] = tmp[predict[color_site_to_num[i][j]]]
+                        predict[color_site_to_num[i][j]] = now_predict[j].cpu().detach().numpy()
+                        select[color_site_to_num[i][j]] = now_select[j].cpu().detach().numpy()
+                for j in range(len(color_edge_to_num[i])):
+                    new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
         self.end()
-        
-        with open('./ACPdebugtmp.txt', 'w') as f:
-            for i in range(len(predict)):
-                f.write(i, " ", predict[i], select[i], '\n')
         
         return Cantsol(predict, select)
 

@@ -15,12 +15,14 @@ from scipy.optimize import curve_fit, brentq
 # python eval.py --taskname IS --instance_path ./Dataset/IS_easy_instance/IS_easy_instance/LP --train_data_dir ./Dataset/IS_easy_instance/IS_easy_instance/
 
 parser = argparse.ArgumentParser(description="receive evaluate instruction")
-parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC", "MIKSC"], help="taskname")
+parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "MIKS", "SC", "MIKSC", "MT"], help="taskname")
 parser.add_argument("--instance_path", type=str, required=True, help="the task instance input path")
 parser.add_argument("--train_data_dir", type=str, required=True, help="the train instances input folder")
 parser.add_argument("--type", type=str, help="easy medium hard")
 parser.add_argument("--task", type=str, help="eval run task")
 parser.add_argument("--eval", action="store_true", help="exec eval func")
+parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2", "cuda:1", "cuda:3"], help="cpu or cuda")
+
 
 args = parser.parse_args()
 
@@ -57,53 +59,53 @@ train_data_dir = args.train_data_dir
 if args.task == "birgat":
     grlis = ["bir"]
     prelis = ["gat"]
-    modlis = ["sr", "nr", "np", "default"]
+    modlis = ["sr", "nr",  "default"]
     sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
 elif args.task == "bigat":
     grlis = ["bi"]
     prelis = ["gat"]
-    modlis = ["sr", "nr", "np", "default"]
+    modlis = ["sr", "nr",  "default"]
     sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
 elif args.task == "gurobisearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi", "scip"]
-    modlis = ["sr", "nr", "np", "default"]
+    prelis = ["gcn", "gurobi"]
+    modlis = ["sr", "nr",  "default"]
     sealis = ["gurobi"]
 elif args.task == "LIHsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi", "scip"]
-    modlis = ["sr", "nr", "np", "default"]
+    prelis = ["gcn", "gurobi"]
+    modlis = ["sr", "nr",  "default"]
     sealis = ["LIH"]
 elif args.task == "MIHsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi", "scip"]
-    modlis = ["sr", "nr", "np", "default"]
+    prelis = ["gcn", "gurobi"]
+    modlis = ["sr", "nr",  "default"]
     sealis = ["MIH"]
 elif args.task == "LNSsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi", "scip"]
-    modlis = ["sr", "nr", "np", "default"]
+    prelis = ["gcn", "gurobi"]
+    modlis = ["sr", "nr", "default"]
     sealis = ["LNS"]
 elif args.task == "NALNSsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi", "scip"]
-    modlis = ["sr", "nr", "np", "default"]
+    prelis = ["gcn", "gurobi"]
+    modlis = ["sr", "nr",  "default"]
     sealis = ["NALNS"]
 elif args.task == "ACPsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi", "scip"]
-    modlis = ["sr", "nr", "np", "default"]
+    prelis = ["gcn", "gurobi"]
+    modlis = ["sr", "nr",  "default"]
     sealis = ["ACP"]
 elif args.task == "SCIPsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi", "scip"]
-    modlis = ["sr", "nr", "np", "default"]
+    prelis = ["gcn", "gurobi"]
+    modlis = ["sr", "nr",  "default"]
     sealis = ["scip"]
 elif args.task == "cplex":
     grlis = ["bi", "bir", "tri", "trir", "default"]
     prelis = ["cplex"]
-    modlis = ["sr", "nr", "np", "default"]
-    sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP", "scip"]
+    modlis = ["sr", "nr", "default"]
+    sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP"]
 else :
     grlis = ["bi", "bir", "tri", "trir", "default"]
     prelis = ["cplex", "gcn", "gurobi", "scip", "gat"]
@@ -521,7 +523,10 @@ def calc(data, lobj, type):
         lobj = min(lobj, val_list[-1])
 
     if type == 'easy':
-        threshold = 100
+        if args.taskname == 'MT':
+            threshold = 300
+        else:
+            threshold = 100
     elif type == 'medium':
         if args.taskname == 'IS':
             threshold = 600
@@ -531,6 +536,7 @@ def calc(data, lobj, type):
             threshold = 600
         if args.taskname == 'MVC':
             threshold = 600
+            
     elif type == 'hard':
         if args.taskname == 'IS':
             threshold = 3500
@@ -629,8 +635,8 @@ def run():
                                 continue
                         we = f"{gr}_{pre}_{mod}_{sea}_"
                         
-                        subprocess.run(["python", "main.py", "--device", "cuda:2", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
-                            "--graphencode", f"{gr}", "--predict", f"{pre}", "--modify", f"{mod}", "--search", f"{sea}", "--whole_time_limit", "100"])  # TODO: add error check  
+                        subprocess.run(["python", "main.py", "--device", f"{args.device}", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", "--train_data_dir", f"{train_data_dir}",
+                            "--graphencode", f"{gr}", "--predict", f"{pre}", "--modify", f"{mod}", "--search", f"{sea}", "--whole_time_limit", "300"])  # TODO: add error check  
                         
                         # instance_name = os.path.basename(instance)
                         # tmp = re.match(r"(.*)\.lp", instance_name)

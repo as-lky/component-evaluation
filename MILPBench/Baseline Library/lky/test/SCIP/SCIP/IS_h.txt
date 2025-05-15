@@ -1,0 +1,29 @@
+nohup: ignoring input
+original problem has 1000000 variables (1000000 bin, 0 int, 0 impl, 0 cont) and 3000000 constraints
+feasible solution found by trivial heuristic after 45.8 seconds, objective value 4.381732e+02
+presolving:
+(round 1, fast)       17372 del vars, 14844 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 2985148 clqs
+(round 2, fast)       25191 del vars, 59537 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 2940455 clqs
+(round 3, exhaustive) 25757 del vars, 61043 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 2938957 upgd conss, 0 impls, 2938957 clqs
+   (235.7s) probing: 51/974038 (0.0%) - 0 fixings, 0 aggregations, 0 implications, 0 bound changes
+   (235.7s) probing aborted: 50/50 successive totally useless probings
+   (239.2s) symmetry computation started: requiring (bin +, int +, cont +), (fixed: bin -, int -, cont -)
+   (242.7s) no symmetry present (symcode time: 1.29)
+presolving (4 rounds: 4 fast, 2 medium, 2 exhaustive):
+ 25962 deleted vars, 62199 deleted constraints, 0 added constraints, 0 tightened bounds, 0 added holes, 0 changed sides, 0 changed coefficients
+ 0 implications, 2937801 cliques
+presolved problem has 974038 variables (974038 bin, 0 int, 0 impl, 0 cont) and 2937801 constraints
+2937801 constraints of type <setppc>
+Presolving Time: 217.05
+
+ time | node  | left  |LP iter|LP it/n|mem/heur|mdpt |vars |cons |rows |cuts |sepa|confs|strbr|  dualbound   | primalbound  |  gap   | compl. 
+t 248s|     1 |     0 |     0 |     - | trivial|   0 | 974k|2937k|   0 |   0 |  0 |   0 |   0 | 4.948606e+05 | 9.125164e+03 |5323.03%| unknown
+
+SCIP Status        : solving was interrupted [time limit reached]
+Solving Time (sec) : 3501.64
+Solving Nodes      : 1
+Primal Bound       : +9.12516362053477e+03 (3 solutions)
+Dual Bound         : +4.94860563453971e+05
+Gap                : 5323.03 %
+[✓] 求解状态: timelimit
+目标值: 9125.163621

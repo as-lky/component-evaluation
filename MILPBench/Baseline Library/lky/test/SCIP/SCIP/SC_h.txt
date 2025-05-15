@@ -1,0 +1,31 @@
+nohup: ignoring input
+original problem has 2000000 variables (2000000 bin, 0 int, 0 impl, 0 cont) and 2000000 constraints
+feasible solution found by trivial heuristic after 27.2 seconds, objective value 9.882042e+05
+presolving:
+(round 1, fast)       36502 del vars, 0 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 0 upgd conss, 0 impls, 0 clqs
+(round 2, exhaustive) 36502 del vars, 0 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 2000000 upgd conss, 0 impls, 0 clqs
+(round 3, fast)       133289 del vars, 0 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 0 chg coeffs, 2000000 upgd conss, 0 impls, 0 clqs
+(round 4, fast)       135017 del vars, 43 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 96787 chg coeffs, 2000000 upgd conss, 0 impls, 0 clqs
+(round 5, exhaustive) 138826 del vars, 94 del conss, 0 add conss, 0 chg bounds, 0 chg sides, 98585 chg coeffs, 2000000 upgd conss, 0 impls, 1790 clqs
+   (139.7s) probing: 51/1861161 (0.0%) - 0 fixings, 0 aggregations, 0 implications, 0 bound changes
+   (139.7s) probing aborted: 50/50 successive totally useless probings
+   (151.2s) symmetry computation started: requiring (bin +, int +, cont +), (fixed: bin -, int -, cont -)
+   (158.7s) no symmetry present (symcode time: 2.09)
+presolving (6 rounds: 6 fast, 3 medium, 3 exhaustive):
+ 138839 deleted vars, 94 deleted constraints, 0 added constraints, 0 tightened bounds, 0 added holes, 0 changed sides, 102283 changed coefficients
+ 0 implications, 1891 cliques
+presolved problem has 1861161 variables (1861161 bin, 0 int, 0 impl, 0 cont) and 1999906 constraints
+1999906 constraints of type <logicor>
+Presolving Time: 155.00
+
+ time | node  | left  |LP iter|LP it/n|mem/heur|mdpt |vars |cons |rows |cuts |sepa|confs|strbr|  dualbound   | primalbound  |  gap   | compl. 
+t 177s|     1 |     0 |     0 |     - | trivial|   0 |1861k|1999k|   0 |   0 |  0 |   0 |   0 | 9.334452e+00 | 9.192626e+05 |  Large | unknown
+
+SCIP Status        : solving was interrupted [time limit reached]
+Solving Time (sec) : 3502.42
+Solving Nodes      : 1
+Primal Bound       : +9.19262591992204e+05 (3 solutions)
+Dual Bound         : +9.33445232132138e+00
+Gap                : 9847961.36 %
+[✓] 求解状态: timelimit
+目标值: 919262.591992

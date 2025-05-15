@@ -465,7 +465,7 @@ class ACP(Search): # solver
         ansx = np.zeros(tmp.NumVars)
 
         for var in tmp.getVars():
-            ansx[value_to_num[var]] = input.cansol[var.VarName]
+            ansx[value_to_num[var.VarName]] = input.cansol[var.VarName]
             
         print(f"初始解目标值为：{ans}")
         
@@ -609,8 +609,8 @@ class ACP(Search): # solver
                 now_time.append(time.time() - begin_time)
                 print(now_sol[-1], now_time[-1])
                                    
-#                if(model.MIPGap >= 0.0001):
-                if(model.MIPGap != 0):
+                if(model.MIPGap >= 0.0001):
+#                if(model.MIPGap != 0):
                     if(KK == 2 and PP > 1):
                         KK -= 1
                         PP -= 1
