@@ -1,6 +1,6 @@
-Dataset
-/lky/Dataset
-/lky/Model
-/lky/logs
+/code/Dataset/*
+/code/Model/*
+/code/logs/*
 *.lp
 *.pickle
+*.txt
