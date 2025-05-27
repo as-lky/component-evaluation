@@ -1,10 +1,11 @@
 import numpy as np
-import torch 
-from typing import Type, cast
-from .mod import Component, Preprocess2Graphencode, Graphencode2Predict
+from .mod import Component, Graphencode2Predict
 from .help.NEURALDIVING.read_lp import get_a_new2, get_a_new3
 
+# different methods of graphencoding as different class
 class Graphencode(Component):
+    # bi means bipartite graph, bir means bipartite graph with random features
+    # tri means tripartite graph, trir means tripartite graph with random features
     def __new__(cls, component, *args, **kwargs):
         if component == "bi":
             cls = Bipartite
@@ -32,7 +33,6 @@ class Graphencode(Component):
 class Bipartite(Graphencode):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        ... # tackle parameters
 
     def work(self) -> Graphencode2Predict:
         
@@ -48,7 +48,6 @@ class Bipartite(Graphencode):
 class BipartiteR(Graphencode):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        ... # tackle parameters
 
     def work(self) -> Graphencode2Predict:
         
@@ -65,7 +64,6 @@ class BipartiteR(Graphencode):
 class Tripartite(Graphencode):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        ... # tackle parameters
 
     def work(self) -> Graphencode2Predict:
         self.begin()
@@ -81,7 +79,6 @@ class Tripartite(Graphencode):
 class TripartiteR(Graphencode):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        ... # tackle parameters
 
     def work(self) -> Graphencode2Predict:
         self.begin()
@@ -92,15 +89,9 @@ class TripartiteR(Graphencode):
         
         return Graphencode2Predict( constraint_features, edge_indices, edge_features, variable_features, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con)
         
-        
-        
-        
-
-
 class Default(Graphencode):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        ... # tackle parameters
 
     def work(self) -> Graphencode2Predict:
         
