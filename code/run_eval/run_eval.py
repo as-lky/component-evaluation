@@ -351,7 +351,7 @@ def run():
                             if mod == "default":
                                 continue
                         
-                        subprocess.run(["python", "main.py", "--device", f"{args.device}", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", 
+                        subprocess.run(["python", "../main_steamline/main.py", "--device", f"{args.device}", "--taskname", f"{args.taskname}", "--instance_path", f"{instance}", 
                             "--graphencode", f"{gr}", "--predict", f"{pre}", "--modify", f"{mod}", "--search", f"{sea}", "--whole_time_limit", "100"]) 
 
 # calculate the indicators of each algorithm's performance on each instance
@@ -389,7 +389,7 @@ def eval():
                         tmp_ = re.match(r"(.*)_[0-9]+", tmp).group(1)
                         
                         # read the result file of the algorithm on the instance
-                        des = f'./logs/work/{args.taskname}/{we}/{tmp_}/{tmp}_result.txt'
+                        des = f'../logs/work/{args.taskname}/{we}/{tmp_}/{tmp}_result.txt'
                         if not os.path.exists(des):
                             continue
                         cnt += 1
@@ -417,7 +417,7 @@ def eval():
     instance_name = os.path.basename(instance)
     tmp = re.match(r"(.*)_[0-9]+\.lp", instance_name)
     tmp = tmp.group(1)
-    des = f'./logs/work/{args.taskname}/{tmp}_result.txt'
+    des = f'../logs/work/{args.taskname}/{tmp}_result.txt'
     result_list = dict(sorted(result_list.items(), key=lambda x: x[1]['score'], reverse=True))
     with open(des, 'w') as f:                
         json.dump(result_list, f, indent=4)

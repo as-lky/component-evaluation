@@ -59,7 +59,7 @@ if args.taskname == "MKS":
 instance_name = INSLIST[0]
 tmp = re.match(r"(.*)_[0-9]+", instance_name)
 tmp = tmp.group(1)
-des = f'./logs/work/{args.taskname}/{tmp}_result.txt'
+des = f'../logs/work/{args.taskname}/{tmp}_result.txt'
 with open(des, 'r') as f:
     result_list = json.load(f)
 
