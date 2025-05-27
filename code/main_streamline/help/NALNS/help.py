@@ -4,13 +4,12 @@ import copy
 import gurobipy as gp
 from gurobipy import GRB, Model
 
-
+# Evaluate the objective function value of the current solution
 def eval(n, coefficient, new_sol):
     ans = 0
     for i in range(n):
         ans += coefficient[i] * new_sol[i]
     return(ans)
-
 
 def select_neighborhood(n, m, k, site, value, constraint, initial_solution, current_solution, objective_coefficient):
     # This new heuristic approach combines the principles of simulated annealing 
@@ -51,22 +50,24 @@ def select_neighborhood(n, m, k, site, value, constraint, initial_solution, curr
 
 
 def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, time_limit, obj_type, lower_bound, upper_bound, value_type, now_sol, now_col):
-    """
+    '''
     Function Description:
-    Solve the given problem instance using the Gurobi solver.
+    Use Gurobi solver to solve the problem based on the provided problem instance and current solution and current selection.
 
-    Parameter Description:
-    - n: The number of decision variables in the problem instance.
-    - m: The number of constraints in the problem instance.
-    - k: k[i] represents the number of decision variables in the i-th constraint.
-    - site: site[i][j] represents which decision variable is the j-th variable in the i-th constraint.
-    - value: value[i][j] represents the coefficient of the j-th decision variable in the i-th constraint.
-    - constraint: constraint[i] represents the right-hand side value of the i-th constraint.
-    - constraint_type: constraint_type[i] represents the type of the i-th constraint, where 1 indicates <= and 2 indicates >=.
-    - coefficient: coefficient[i] represents the coefficient of the i-th decision variable in the objective function.
-    - time_limit: The maximum solving time.
-    - obj_type: Indicates whether the problem is a maximization or minimization problem.
-    """
+    Parameter description:
+    -N: The number of decision variables in the problem instance.
+    -M: The number of constraints for problem instances.
+    -K: k [i] represents the number of decision variables for the i-th constraint.
+    -Site: site [i] [j] represents which decision variable is the jth decision variable of the i-th constraint.
+    -Value: value [i] [j] represents the coefficient of the jth decision variable of the i-th constraint.
+    -Constraint: constraint [i] represents the number to the right of the i-th constraint.
+    -Constrict_type: constrict_type [i] represents the type of the i-th constraint, 1 represents<=, 2 represents>=
+    -Coefficient: coefficient [i] represents the coefficient of the i-th decision variable in the objective function.
+    -Time_imit: Maximum solution time.
+    -Obj_type: Is the problem a maximization problem or a minimization problem.
+    -Now_sol: represents the current solution.
+    -Now_col: represents the current selection of decision variables, 0 means selected, 1 means not selected.
+    '''
 
     begin_time = time.time()
     model = Model("Gurobi")
@@ -116,6 +117,7 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
         else:
             if(constraint_type[i] == 1):
                 if(constr > constraint[i]):
+                    # No feasible solution
                     print("QwQ")
                     print(constr,  constraint[i])
                     print(now_col)
@@ -124,7 +126,6 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                     print("QwQ")
                     print(constr,  constraint[i])
                     print(now_col)
-    #model.setParam('OutputFlag', 0)
     model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
     model.optimize()
     try:
@@ -142,10 +143,10 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
     except:
         return -1, -1, -1, -1
 
+# neighborhood adaptive large neighborhood search (NALNS) algorithm main function
 def greedy_one(now_instance_data, time_limit, choose_=0.5):
     begin_time = time.time()
     set_time = time_limit
-    epsilon = 1e-3
     n = now_instance_data[0]
     m = now_instance_data[1]
     k = now_instance_data[2]
@@ -160,22 +161,15 @@ def greedy_one(now_instance_data, time_limit, choose_=0.5):
     value_type = now_instance_data[11]
     initial_sol = now_instance_data[12]
 
-    #choose = 0.5
     choose = choose_
-    step = 0.1
-    turn = 0
     best_val = eval(n, coefficient, initial_sol)
     
     turn_time = [time.time() - begin_time]
     turn_ans = [best_val]
     turn_limit = 50
-    #turn_limit = 100
-    #turn_limit = 1000
     GAP = 0
     now_sol = initial_sol
     while(time.time() - begin_time <= set_time):
-        #print("before", parts, time.time() - begin_time)
-        #"n", "m", "k", "site", "value", "constraint", "initial_solution", "current_solution", "objective_coefficient"
         neighbor_score = select_neighborhood(
                             n, 
                             m, 
@@ -187,7 +181,6 @@ def greedy_one(now_instance_data, time_limit, choose_=0.5):
                             copy.deepcopy(now_sol), 
                             copy.deepcopy(coefficient)
                         )
-        #print("after", parts, time.time() - begin_time)
         indices = np.argsort(neighbor_score)[::-1]
         color = np.zeros(n)
         for i in range(int(n * choose)):
@@ -245,11 +238,10 @@ def split_problem(lp_file):
 
     objective = model.getObjective()
     temp_coeff = []
-#    temp_varname = []
+    # using a dictionary to map variable names to indices, which is much faster than using a list
     temp_varname = {}
     for i in range(objective.size()):
         temp_coeff.append(objective.getCoeff(i))
-#        temp_varname.append(objective.getVar(i).VarName)
         temp_varname[objective.getVar(i).VarName] = i
 
     i = 0

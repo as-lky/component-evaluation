@@ -14,11 +14,17 @@ from .help.LNS.help import split_problem as split_problem_LNS
 from .help.ACP.help import split_problem as split_problem_ACP
 from .mod import Component, Modify2Search, Cansol2S
 
-from pyscipopt import SCIP_PARAMSETTING, Eventhdlr, SCIP_EVENTTYPE
-from typing import Type, cast
+from pyscipopt import SCIP_PARAMSETTING, SCIP_EVENTTYPE
 from gurobipy import GRB
 
-
+# different methods of searching as different class
+# scip means using scip to search solutions
+# gurobi means using gurobi to search solutions
+# LIH means Least Integral Heuristic
+# MIH means Most Integral Heuristic
+# LNS means Large Neighborhood Search
+# NALNS means Neighborhood Adaptive Large Neighborhood Search
+# ACP means Adaptive Constraint Partition
 class Search(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
         if component == "scip":
@@ -44,14 +50,13 @@ class Search(Component):
         super().__init__(device, taskname, instance, sequence_name)
 
     def work(self, input: Modify2Search, result_list: list):...
-        
+      
 class LIH(Search):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
         self.choose = kwargs.get("choose") or 0.5
         self.set_pa = kwargs.get("set_pa") or 0.3
-        ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
         self.begin()
@@ -110,8 +115,6 @@ class MIH(Search):
         self.time_limit = kwargs.get("time_limit") or 10
         self.choose = kwargs.get("choose") or 0.5
         self.set_pa = kwargs.get("set_pa") or 0.3
- 
-        ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
         self.begin()
@@ -170,8 +173,6 @@ class LNS(Search):
         self.time_limit = kwargs.get("time_limit") or 10
         self.block = kwargs.get("block") or 4
         self.max_turn_ratio = kwargs.get("max_turn_ratio") or 0.01
-        
-        ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
         self.begin()
@@ -210,8 +211,8 @@ class LNS(Search):
                 #Exit when reaching the time limit
                 if(time.time() - begin_time > time_limit):
                     break
-                #site_to_color[i]represents which decision variable is the i-th decision variable in this block
-                #color_to_site[i]represents which decision variable is mapped to the i-th decision variable in this block
+                #site_to_color[i] represents which decision variable is the i-th decision variable in this block
+                #color_to_site[i] represents which decision variable is mapped to the i-th decision variable in this block
                 #vertex_color_num represents the number of decision variables in this block currently
                 site_to_color = np.zeros(n, int)
                 color_to_site = np.zeros(n, int)
@@ -276,7 +277,6 @@ class LNS(Search):
                     bestX = []
                     for i in range(vertex_color_num):
                         bestX.append(x[i].X)
-                    #print(bestX)
 
                     #Update the current best solution and best ans
                     if(obj_type == 'maximize'):
@@ -298,12 +298,6 @@ class LNS(Search):
                     
                 except:
                     print("Cant't optimize more~~")
-                    # new_ansx = {}
-                    # for i in range(len(ansx)):
-                    #     new_ansx[num_to_value[i]] = ansx[i]
-                    # with open(pickle_path + '/' + (os.path.split(lp_file)[1])[:-3] + '.pickle', 'wb') as f:
-                    #     pickle.dump([new_ansx, ans], f)
-                    # return ans, time.time()-begin_time
             
         new_ansx = {}
         for i in range(len(ansx)):
@@ -321,8 +315,6 @@ class NALNS(Search):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
         self.choose = kwargs.get("choose") or 0.5
-        
-        ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
         
@@ -333,7 +325,6 @@ class NALNS(Search):
         tmp = gp.read(self.instance)
         for var in tmp.getVars():
             new_sol.append(input.cansol[var.VarName])
-        
         
         time_limit = self.time_limit
 
@@ -377,14 +368,13 @@ class NALNS(Search):
         
         return 0, 0, 0 
 
-class Gurobi(Search): # solver
+class Gurobi(Search):
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get('time_limit') or 10
         self.log = []
         self.benchmark_path = kwargs.get('benchmark_path') or 0
-        ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
         self.begin()
@@ -395,6 +385,7 @@ class Gurobi(Search): # solver
         for var in model.getVars():
             var.Start = input.cansol[var.VarName]
 
+        # Set the callback function to log the progress
         log = []
         def my_callback(model, where):
             if where == GRB.Callback.MIPSOL:
@@ -410,7 +401,6 @@ class Gurobi(Search): # solver
             result_list.append((result_list[0][0] + log[_][0], log[_][1]))
 
         if self.benchmark_path != 0:
-            
             instance_name = os.path.basename(self.instance)
             tmp = re.match(r"(.*)\.lp", instance_name)
             tmp = tmp.group(1)
@@ -425,28 +415,22 @@ class Gurobi(Search): # solver
         
         return model.MIPGap, model.ObjVal, model.ModelSense # must be it!
         
-
-class ACP(Search): # solver
+class ACP(Search):
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get('time_limit') or 10
         self.block = kwargs.get('block') or 2
         self.max_turn_ratio = kwargs.get('max_turn_ratio') or 0.1
-        ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
         self.begin()
 
-        '''
-        Run LNS (Large Neighborhood Search), passing in the lp file. 'block' is the number of blocks (default 2), 'time_limit' is the total running time limit (default 4000), and 'max_turn_ratio' is the maximum running time ratio for each turn (default 0.1).
-        '''
         #Set KK as the initial number of blocks and PP as the selected number of blocks to optimize after dividing the constraints into KK blocks
         KK = self.block
         PP = 1
         max_turn = 5
         epsilon = 0.01
-        #Retrieve the problem model after splitting and create a new folder named "ACP_Pickle"
         max_turn_ratio = self.max_turn_ratio
         time_limit = self.time_limit
         max_turn_time = max_turn_ratio * time_limit
@@ -467,7 +451,7 @@ class ACP(Search): # solver
         for var in tmp.getVars():
             ansx[value_to_num[var.VarName]] = input.cansol[var.VarName]
             
-        print(f"初始解目标值为：{ans}")
+        print(f"Initial objective: {ans}")
         
         #Constraint block labels, where cons_color[i] represents which block the i-th constraint belongs to
         cons_color = np.zeros(m, int)
@@ -502,8 +486,8 @@ class ACP(Search): # solver
                     for j in range(k[i]):
                         color[site[i][j]] = 1
                         color_num += 1
-            #site_to_color[i]represents which decision variable is the i-th decision variable in this block
-            #color_to_site[i]represents which decision variable is mapped to the i-th decision variable in this block
+            #site_to_color[i] represents which decision variable is the i-th decision variable in this block
+            #color_to_site[i] represents which decision variable is mapped to the i-th decision variable in this block
             #vertex_color_num represents the number of decision variables in this block currently
             site_to_color = np.zeros(n, int)
             color_to_site = np.zeros(n, int)
@@ -563,11 +547,10 @@ class ACP(Search): # solver
             try:
                 #Calculate the current objective value
                 temp = model.ObjVal + objtemp
-                print(f"当前目标值为：{temp}")
+                print(f"The current objective value is: {temp}")
                 bestX = []
                 for i in range(vertex_color_num):
                     bestX.append(x[i].X)
-                #print(bestX)
 
                 if(obj_type == 'maximize'):
                     #Update the current best solution and best ans
@@ -610,7 +593,6 @@ class ACP(Search): # solver
                 print(now_sol[-1], now_time[-1])
                                    
                 if(model.MIPGap >= 0.0001):
-#                if(model.MIPGap != 0):
                     if(KK == 2 and PP > 1):
                         KK -= 1
                         PP -= 1
@@ -645,20 +627,17 @@ class ACP(Search): # solver
         self.end()
         return 0, 0, 0  
         
-class SCIP(Search): # solver
+class SCIP(Search):
     
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get('time_limit') or 10
-        
-        ... # tackle parameters
 
     def work(self, input: Cansol2S, result_list: list):
         self.begin()
 
         model = scp.Model()
         model.setParam('limits/time', self.time_limit)
-        #m1.hideOutput(True)
         model.setParam('randomization/randomseedshift', 0)
         model.setParam('randomization/lpseed', 0)
         model.setParam('randomization/permutationseed', 0)
@@ -671,14 +650,17 @@ class SCIP(Search): # solver
 
         log_time = []
         log_val = []
+       
         def get_val_time(model, event):
             log_time.append(model.getSolvingTime())
             log_val.append(model.getPrimalbound())
             
+        # Set the callback function to log the progress
         model.attachEventHandlerCallback(get_val_time, [SCIP_EVENTTYPE.BESTSOLFOUND])
         model.optimize()
         log_val.append(model.getPrimalbound())
         log = []
+        # a small trick to avoid SCIP progress lag
         for i in range(len(log_time)):
             log.append((log_time[i], log_val[i + 1]))
         
@@ -686,6 +668,4 @@ class SCIP(Search): # solver
             result_list.append((result_list[0][0] + log[_][0], log[_][1]))
             
         self.end()
-
-#        return model.getGap(), model.getObjVal()
         return 0, 0, 0
