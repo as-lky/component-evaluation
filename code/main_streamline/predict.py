@@ -9,13 +9,19 @@ import pickle
 import random
 import cplex
 from .mod import Component, Graphencode2Predict, Predict2Modify, Cantsol, Cansol2M
-from .help.NEURALDIVING.test import GraphDataset
-from .help.NEURALDIVING.help import get_a_new2 as get_a_new2_gcn, get_a_new3 as get_a_new3_gcn
+from .help.NEURALDIVING.help import get_a_new2 as get_a_new2_gcn, get_a_new3 as get_a_new3_gcn, GraphDataset
 from .help.LIGHT.help import get_a_new2 as get_a_new2_gat
 
-from .help.LIGHT.EGAT_models import SpGAT, SpGAT2
+from .help.LIGHT.EGAT_models import SpGAT
 import torch_geometric
 
+
+# different methods of predicting as different class
+# gcn means graph convolutional network
+# gurobi means using gurobi to find a feasible solution
+# scip means using scip to find a feasible solution
+# cplex means using cplex to find a feasible solution
+# gat means graph attention network
 class Predict(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
         if component == "gcn":
@@ -43,8 +49,9 @@ class Gurobi(Predict):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
-        ... # tackle parameters
     
+    # to find a feasible solution using gurobi
+    # stop as soon as a feasible solution is found
     def work(self, input: Graphencode2Predict) -> Cansol2M:    
         
         self.begin()
@@ -65,8 +72,9 @@ class SCIP(Predict):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
-        ... # tackle parameters
     
+    # to find a feasible solution using SCIP
+    # stop as soon as a feasible solution is found
     def work(self, input: Graphencode2Predict) -> Cansol2M:    
         
         self.begin()
@@ -89,8 +97,9 @@ class CPLEX(Predict):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit", 10)
-        ... # tackle parameters
     
+    # to find a feasible solution using CPLEX
+    # stop as soon as a feasible solution is found
     def work(self, input: Graphencode2Predict) -> Cansol2M:    
         
         self.begin()
@@ -110,19 +119,18 @@ class CPLEX(Predict):
         return Cansol2M(model.solution.get_objective_value(), cansol, model.solution.MIP.get_mip_relative_gap())
 
 class GCN(Predict):
-        
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         if "train_data_dir" in kwargs:
             self.train_data_dir = kwargs["train_data_dir"]
         else :
             self.train_data_dir = None
-        ... # tackle parameters 
  
+    # to predict a solution using gcn (maybe infeasible)
     def work(self, input: Graphencode2Predict) -> Cantsol:    
         
         self.begin()
-        # first check the model, if there is not then train using train instances
+        # gcn network structure
         from .help.NEURALDIVING.graphcnn import GNNPolicy
         
         DEVICE = self.device     
@@ -134,59 +142,49 @@ class GCN(Predict):
         else :
             instance_name = instance_name.group(1)
             
-        pathstr = ""
-        # 模型训练不需要以sequence_name做路径 因为其与其他部分无关 只保留instance_name 和参数可以确保可复用性 ×
-        model_dir = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
-        model_path = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/model_best.pkl'
-        W = f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
+        
+        # the model training needn't a path including sequence_name because now there is not hyper-parameters in graphencode layer or predict layer
+        # so only contains instance_name and Graphencode and Predict components to ensure the reusability of the model
+        model_dir = f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
+        model_path = f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/model_best.pkl'
+        W = f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
 
-
-        if not os.path.isdir('./logs/'):
-            os.mkdir('./logs')
-        if not os.path.isdir(f'./logs/train/'):
-            os.mkdir('./logs/train')
-        if not os.path.isdir(f'./logs/train/{self.taskname}/'):
-            os.mkdir(f'./logs/train/{self.taskname}')
-        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/'):
-            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}')
-        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
-            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
-        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
-            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
+        if not os.path.isdir('../logs/'):
+            os.mkdir('../logs')
+        if not os.path.isdir(f'../logs/train/'):
+            os.mkdir('../logs/train')
+        if not os.path.isdir(f'../logs/train/{self.taskname}/'):
+            os.mkdir(f'../logs/train/{self.taskname}')
+        if not os.path.isdir(f'../logs/train/{self.taskname}/{instance_name}/'):
+            os.mkdir(f'../logs/train/{self.taskname}/{instance_name}')
+        if not os.path.isdir(f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
+            os.mkdir(f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
+        if not os.path.isdir(f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
+            os.mkdir(f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
         
             
-        if os.path.exists(model_path): # TODO : add parameter for model name
-            pathstr = model_path
-        else :
-            if not os.path.isdir('./Model/'):
-                os.mkdir('./Model/')
-            if not os.path.isdir(f'./Model/{self.taskname}'):
-                os.mkdir(f'./Model/{self.taskname}')
-            if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}'):
-                os.mkdir(f'./Model/{self.taskname}/{instance_name}')
-            if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
-                os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
-            if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}'):
-                os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
-            
-#            if self.sequence_name[0][-1] == 'r':
-#                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", f"{self.device}", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
-#                                "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}", "--random_feature"])    
-#            else:
-#                subprocess.run(["python", "lib/help/GCN/trainPredictModel.py", "--device", f"{self.device}", "--taskname", f"{self.taskname}", "--train_data_dir", f"{self.train_data_dir}",
-#                                "--log_dir", f"{W}", "--model_save_dir", f"{model_dir}"])    
- 
-            exec = ["python", "lib/help/NEURALDIVING/train.py", "--train_data_dir", f"{self.train_data_dir}",
+        # check the model, if there is not then train using train instances
+        if not os.path.exists(model_path):
+            if not os.path.isdir('../Model/'):
+                os.mkdir('../Model/')
+            if not os.path.isdir(f'../Model/{self.taskname}'):
+                os.mkdir(f'../Model/{self.taskname}')
+            if not os.path.isdir(f'../Model/{self.taskname}/{instance_name}'):
+                os.mkdir(f'../Model/{self.taskname}/{instance_name}')
+            if not os.path.isdir(f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
+                os.mkdir(f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
+            if not os.path.isdir(f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}'):
+                os.mkdir(f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
+
+            # train the model using the train program
+            exec = ["python", "./help/NEURALDIVING/train.py", "--train_data_dir", f"{self.train_data_dir}",
                    "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--device", f"{self.device}"]
+            # check if using tripartite and random feature
             if self.sequence_name[0][-1] == 'r':
                 exec.append("--random_feature")
             if self.sequence_name[0][0] == 't':
                 exec.append("--tripartite")
-                
             subprocess.run(exec)
- 
-            pathstr = model_path
-            # train_data_dir + LP / Pickle    
         
         tripartite = True if self.sequence_name[0][0] == 't' else False
             
@@ -201,31 +199,22 @@ class GCN(Predict):
         S = os.path.dirname(self.instance)
         S = os.path.dirname(S)
         S = os.path.join(S, 'Pickle')
-        solution_path = os.path.join(S, instance_name) + '.pickle'
     
+        # if the pickle file(containing the features) does not exist, then generate the features and save them
         if not os.path.exists(pk):
             if not tripartite:
                 constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2_gcn(self.instance, random_feature=True if self.sequence_name[0][-1] == 'r' else False)            
-                #with open(solution_path, "rb") as f:
-                #    solution = pickle.load(f)[0]
                 sol = []
-                #for i in range(n):
-                #    sol.append(solution[num_to_value[i]])
                 with open(pk, "wb") as f:
                     pickle.dump([variable_features, constraint_features, edge_indices, edge_features, sol], f)
                     
             else :
                 constraint_features, edge_indices, edge_features, variable_features, num_to_value, n, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con = get_a_new3_gcn(self.instance, random_feature=True if self.sequence_name[0][-1] == 'r' else False)
-                #with open(solution_path, "rb") as f:
-                #    solution = pickle.load(f)[0]
                 sol = []
-                #for i in range(n):
-                #    sol.append(solution[num_to_value[i]])
-                
                 with open(pk, "wb") as f:
                     pickle.dump([variable_features, constraint_features, edge_indices, edge_features, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con, sol], f)
                 
-                    
+        # load the data using Dataset batch with a batch whose size is 1 
         file = [pk]
         data = GraphDataset(file, tripartite=tripartite)
         loader = torch_geometric.loader.DataLoader(data, batch_size = 1)
@@ -258,14 +247,15 @@ class GCN(Predict):
         return Cantsol(logits, select)
 
 class GAT(Predict):
-        
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
         if "train_data_dir" in kwargs:
             self.train_data_dir = kwargs["train_data_dir"]
-        ... # tackle parameters 
+        else :
+            self.train_data_dir = None
  
+    # to predict a solution using gat (maybe infeasible)
     def work(self, input: Graphencode2Predict) -> Cantsol:    
         
         self.begin()
@@ -278,47 +268,46 @@ class GAT(Predict):
         else :
             instance_name = instance_name.group(1)
             
-        pathstr = ""
-        # 模型训练不需要以sequence_name做路径 因为其与其他部分无关 只保留instance_name 和参数可以确保可复用性 ×
-        model_dir = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
-        model_path = f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/model_best.pkl'
-        W = f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
+        # the model training needn't a path including sequence_name because now there is not hyper-parameters in graphencode layer or predict layer
+        # so only contains instance_name and Graphencode and Predict components to ensure the reusability of the model
+        model_dir = f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
+        model_path = f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/model_best.pkl'
+        W = f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'
 
-        if not os.path.isdir('./logs/'):
-            os.mkdir('./logs')
-        if not os.path.isdir(f'./logs/train/'):
-            os.mkdir('./logs/train')
-        if not os.path.isdir(f'./logs/train/{self.taskname}/'):
-            os.mkdir(f'./logs/train/{self.taskname}')
-        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/'):
-            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}')
-        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
-            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
-        if not os.path.isdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
-            os.mkdir(f'./logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
+        if not os.path.isdir('../logs/'):
+            os.mkdir('../logs')
+        if not os.path.isdir(f'../logs/train/'):
+            os.mkdir('../logs/train')
+        if not os.path.isdir(f'../logs/train/{self.taskname}/'):
+            os.mkdir(f'../logs/train/{self.taskname}')
+        if not os.path.isdir(f'../logs/train/{self.taskname}/{instance_name}/'):
+            os.mkdir(f'../logs/train/{self.taskname}/{instance_name}')
+        if not os.path.isdir(f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
+            os.mkdir(f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
+        if not os.path.isdir(f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}/'):
+            os.mkdir(f'../logs/train/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
 
-        if os.path.exists(model_path): # TODO : add parameter for model name
-            pathstr = model_path
-        else :
-            if not os.path.isdir('./Model/'):
-                os.mkdir('./Model/')
-            if not os.path.isdir(f'./Model/{self.taskname}'):
-                os.mkdir(f'./Model/{self.taskname}')
-            if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}'):
-                os.mkdir(f'./Model/{self.taskname}/{instance_name}')
-            if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
-                os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
-            if not os.path.isdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}'):
-                os.mkdir(f'./Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
-            
-            exec = ["python", "lib/help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
+        # check the model, if there is not then train using train instances
+        if not os.path.exists(model_path):
+            if not os.path.isdir('../Model/'):
+                os.mkdir('../Model/')
+            if not os.path.isdir(f'../Model/{self.taskname}'):
+                os.mkdir(f'../Model/{self.taskname}')
+            if not os.path.isdir(f'../Model/{self.taskname}/{instance_name}'):
+                os.mkdir(f'../Model/{self.taskname}/{instance_name}')
+            if not os.path.isdir(f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}'):
+                os.mkdir(f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}')
+            if not os.path.isdir(f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}'):
+                os.mkdir(f'../Model/{self.taskname}/{instance_name}/{self.sequence_name[0]}/{self.sequence_name[1]}')
+
+            # train the model using the train program
+            exec = ["python", "./help/LIGHT/train.py", "--train_data_dir", f"{self.train_data_dir}",
                     "--model_save_dir", f"{model_dir}", "--log_dir", f"{W}", "--device", f"{self.device}", "--lr", "1e-4", "--alpha", "2e-4", "--no-cuda"]
+      
+            # check if using random feature
             if self.sequence_name[0][-1] == 'r':
                 exec.append("--random_feature")
             subprocess.run(exec)
-                
-            pathstr = model_path
-            # train_data_dir + LP / Pickle    
                 
         instance_name = os.path.basename(self.instance)
         instance_name = re.match(r"(.*_[0-9]+)\.lp", instance_name)
@@ -364,15 +353,6 @@ class GAT(Predict):
 
         features = variable_features + constraint_features
         features = torch.as_tensor(features)
-        
-        
-        print("==================")
-        print(features.shape)
-        print("==================")
-        
-        
-
-        idx_test = torch.tensor(range(n))
 
         ##Predict
         #FENNEL
@@ -480,81 +460,33 @@ class GAT(Predict):
                 color_edge_to_num[now_color].append(i)
 
         path_model = model_path
-        if self.taskname == 'MIKSCqweqwe':
-            model = SpGAT2(nfeat=features.shape[1],    # Feature dimension
-                nhid=64,                    # Feature dimension of each hidden layer
-                nclass=2,                   # Number of classes 
-                dropout=0.5,                # Dropout
-                nheads=6,                   # Number of heads
-                alpha=0.2)                  # LeakyReLU alpha coefficient
-            state_dict_load = torch.load(path_model)
-            model.load_state_dict(state_dict_load)
-            model.to(self.device)
+        model = SpGAT(nfeat=features.shape[1],    # Feature dimension
+                    nhid=64,                    # Feature dimension of each hidden layer
+                    nclass=1,                   # Number of classes
+                    dropout=0.5,                # Dropout
+                    nheads=6,                   # Number of heads
+                    alpha=0.2)                  # LeakyReLU alpha coefficient
 
-            def compute_test(features, edgeA, edgeB, edge_features):
-                model.eval()
-                output, new_edge_feat = model(features, edgeA, edgeB, edge_features)
-                #loss_test = F.nll_loss(output[idx_test], labels[idx_test])
-                #acc_test = accuracy(output[idx_test], labels[idx_test])
-                #print("Test set results:",
-                #      "loss= {:.4f}".format(loss_test.data.item()))
-                return(output, new_edge_feat)
+        state_dict_load = torch.load(path_model)
+        model.load_state_dict(state_dict_load)
+        model.to(self.device)
 
+        def compute_test(features, edgeA, edgeB, edge_features):
+            model.eval()
+            output, select, new_edge_feat = model(features, edgeA, edgeB, edge_features)
+            return(output, select, new_edge_feat)
 
-            predict = [0] * (n + m)
-            select = [0] * (n + m)
-            new_edge_feat = [0] * edge_num
-            for i in range(partition_num):
-                now_predict, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
-    
-                for j in range(len(color_site_to_num[i])):
-                    if(color_site_to_num[i][j] < n):
-                        tmp = now_predict[j].cpu().detach().numpy()
-                        predict[color_site_to_num[i][j]] = 1 if tmp[1] > 0.5 else 0
-                        select[color_site_to_num[i][j]] = tmp[predict[color_site_to_num[i][j]]]
-                for j in range(len(color_edge_to_num[i])):
-                    new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
-
-        else :
-            model = SpGAT(nfeat=features.shape[1],    # Feature dimension
-                        nhid=64,                    # Feature dimension of each hidden layer
-                        nclass=1,                   # Number of classes
-    #                    nclass=2,                   # Number of classes 
-                        dropout=0.5,                # Dropout
-                        nheads=6,                   # Number of heads
-                        alpha=0.2)                  # LeakyReLU alpha coefficient
-            state_dict_load = torch.load(path_model)
-            model.load_state_dict(state_dict_load)
-            model.to(self.device)
-
-            def compute_test(features, edgeA, edgeB, edge_features):
-                model.eval()
-                output, select, new_edge_feat = model(features, edgeA, edgeB, edge_features)
-    #            output, new_edge_feat = model(features, edgeA, edgeB, edge_features)
-                #loss_test = F.nll_loss(output[idx_test], labels[idx_test])
-                #acc_test = accuracy(output[idx_test], labels[idx_test])
-                #print("Test set results:",
-                #      "loss= {:.4f}".format(loss_test.data.item()))
-                return(output, select, new_edge_feat)
-    #            return (output, new_edge_feat)
-
-
-            predict = [0] * (n + m)
-            select = [0] * (n + m)
-            new_edge_feat = [0] * edge_num
-            for i in range(partition_num):
-                now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
-    #            now_predict, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
-    
-                for j in range(len(color_site_to_num[i])):
-                    if(color_site_to_num[i][j] < n):
-    #                   tmp = now_predict[j].cpu().detach().numpy()
-    #                    predict[color_site_to_num[i][j]] = 1 if tmp[1] > 0.5 else 0
-    #                   select[color_site_to_num[i][j]] = tmp[predict[color_site_to_num[i][j]]]
-                        predict[color_site_to_num[i][j]] = now_predict[j].cpu().detach().numpy()
-                        select[color_site_to_num[i][j]] = now_select[j].cpu().detach().numpy()
-                for j in range(len(color_edge_to_num[i])):
-                    new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
+        predict = [0] * (n + m)
+        select = [0] * (n + m)
+        new_edge_feat = [0] * edge_num
+        for i in range(partition_num):
+            now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
+            for j in range(len(color_site_to_num[i])):
+                if(color_site_to_num[i][j] < n):
+                    predict[color_site_to_num[i][j]] = now_predict[j].cpu().detach().numpy()
+                    select[color_site_to_num[i][j]] = now_select[j].cpu().detach().numpy()
+            for j in range(len(color_edge_to_num[i])):
+                new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
         self.end()
         

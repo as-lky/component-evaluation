@@ -1,9 +1,5 @@
-from __future__ import division
-from __future__ import print_function
-
 import os
 import re
-import glob
 import time
 import pickle
 import random
@@ -18,33 +14,8 @@ from torch.autograd import Variable
 
 from EGAT_models import SpGAT
 
-class Focal_Loss(nn.Module):
-    def __init__(self, weight, gamma=2):
-        super(Focal_Loss, self).__init__()
-        self.gamma = gamma
-        self.weight = weight  # List in tensor data format
-
-    def forward(self, preds, labels):
-        """
-        preds: logits output values
-        labels: labels
-        """
-        preds = F.softmax(preds, dim=1).to(device)
-        eps = 1e-7
-        target = self.one_hot(preds.size(1), labels).to(device)
-        ce = (-1 * torch.log(preds + eps) * target).to(device)
-        floss = (torch.pow((1 - preds), self.gamma) * ce).to(device)
-        floss = torch.mul(floss, self.weight)
-        floss = torch.sum(floss, dim=1)
-        return torch.mean(floss)
-
-    def one_hot(self, num, labels):
-        one = torch.zeros((labels.size(0), num))
-        one[range(labels.size(0)), labels] = 1
-        return one
-
-
-
+# function to read the *.lp file and return the basic information of the instance and the encoded bipartite graph features
+# random_feature is true when encoding the instance into a graph with random features
 def get_a_new2(instance, random_feature = False):
     model = gp.read(instance)
     value_to_num = {}
@@ -76,7 +47,6 @@ def get_a_new2(instance, random_feature = False):
         
         constraint.append(cnstr.RHS)
 
-
         now_site = []
         now_value = []
         row = model.getRow(cnstr)
@@ -107,7 +77,6 @@ def get_a_new2(instance, random_feature = False):
 
     #1 minimize, -1 maximize
     obj_type = model.ModelSense
-    
     
     variable_features = []
     constraint_features = []
@@ -177,10 +146,6 @@ parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_availa
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
-#print(torch.cuda.is_available())
-
-#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-#device = torch.device("cpu")
 device = args.device
 
 random.seed(args.seed)
@@ -198,11 +163,12 @@ data_edge_B = []
 data_edge_num_B = []
 data_idx_train = []
 
+# function to filter the training data 
 def c(a):
     tmp = os.path.basename(a)
     tmp = re.match(r".*_([0-9]+)", tmp)
     tmp = tmp.group(1)
-    return int(tmp) <= 3 or int(tmp) >= 23 # 20个
+    return int(tmp) <= 3 or int(tmp) >= 23
 
 log_dir = args.log_dir
 train_data_dir = args.train_data_dir
@@ -278,7 +244,6 @@ for ____ in sample_files:
     features = torch.as_tensor(features).float()
     data_features.append(features)
 
-    #labelA = torch.tensor(patition_color)
     new_optimal_solution = []
     for item in optimal_solution:
         new_optimal_solution.append((int)(item))
@@ -330,7 +295,6 @@ if args.cuda: # Move to GPU
         data_edge_features[now_data] = data_edge_features[now_data].to(device)
         data_idx_train[now_data] = data_idx_train[now_data].to(device)
 
-
 for now_data in range(data_num):
     data_features[now_data] = Variable(data_features[now_data])
     data_edge_A[now_data] = Variable(data_edge_A[now_data])
@@ -338,17 +302,12 @@ for now_data in range(data_num):
     data_solution[now_data] = Variable(data_solution[now_data])
     # Define computation graph for automatic differentiation
 
+# the main function of training
 def train(epoch, num):
     global data_edge_features
     t = time.time()
 
     output, select, data_edge_features[num] = model(data_features[num], data_edge_A[num], data_edge_B[num], data_edge_features[num].detach())
-#    print(data_solution[num][idx_train])
-
-    #lf = Focal_Loss(torch.as_tensor(data_labels[num]))
-    #loss_train = lf(output[idx_train], data_solution[num][idx_train])
-
-    #return loss_train
     choose = {}
     n = output.shape[0]
     for i in range(n):
@@ -371,8 +330,6 @@ def train(epoch, num):
 
     return loss
 
-
-
 t_total = time.time()
 loss_values = []
 bad_counter = 0
@@ -391,7 +348,6 @@ for epoch in range(args.epochs):
     print('Epoch: {:04d}'.format(epoch+1),
           'loss_train: {:.4f}'.format(now_loss))
 
-#    torch.save(model.state_dict(), '{}.pkl'.format(epoch))
     if loss_values[-1] < best:
         torch.save(model.state_dict(), model_save_dir + 'model_best.pkl')
         best = loss_values[-1]
@@ -403,23 +359,7 @@ for epoch in range(args.epochs):
     if bad_counter == args.patience:  # Stop if there's no improvement for several consecutive rounds
         break
 
-#    files = glob.glob('*.pkl')
-#    for file in files:
-#        epoch_nb = int(file.split('.')[0])
-#        if epoch_nb < best_epoch:
-#            os.remove(file)
-
-#files = glob.glob('*.pkl')
-#for file in files:
-#    epoch_nb = int(file.split('.')[0])
-#    if epoch_nb > best_epoch:
-#        os.remove(file)
-
 print("Optimization Finished!")
 print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
-
-# Restore best model
-print('Loading {}th epoch'.format(best_epoch))
-#model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
 
 print(loss_values)

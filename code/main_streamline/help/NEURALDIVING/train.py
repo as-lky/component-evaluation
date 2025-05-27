@@ -9,12 +9,10 @@ import torch.nn.functional as F
 import torch_geometric
 import gurobipy as gp
 import random
-from pytorch_metric_learning import losses
 
 from graphcnn import GNNPolicy
 
-__all__ = ["train"]
-
+# bipartite graph data
 class BipartiteNodeData(torch_geometric.data.Data):
     """
     This class encode a node bipartite graph observation as returned by the `ecole.observation.NodeBipartite`
@@ -51,6 +49,7 @@ class BipartiteNodeData(torch_geometric.data.Data):
             return super().__inc__(key, value, *args, **kwargs)
 
 
+# tripartite graph data
 class TripartiteNodeData(torch_geometric.data.Data):
     """
     This class encode a node tripartite graph observation as returned by the `ecole.observation.NodeBipartite`
@@ -105,6 +104,7 @@ class TripartiteNodeData(torch_geometric.data.Data):
             return super().__inc__(key, value, *args, **kwargs)
 
 
+# graph dataset
 class GraphDataset(torch_geometric.data.Dataset):
     """
     This class encodes a collection of graphs, as well as a method to load such graphs from the disk.
@@ -138,9 +138,6 @@ class GraphDataset(torch_geometric.data.Dataset):
                 constraint_features, edge_indices, edge_features, variable_features, num_to_value, n = get_a_new2(instance, self.random_feature)
                 
                 with open(solution_path, "rb") as f:
-                    # print(solution_path)
-                    # tmp = pickle.load(f)
-                    # print("!!!!!", type(tmp[0]), type(tmp[1]))
                     solution = pickle.load(f)[0]
                 sol = []
                 for i in range(n):
@@ -233,7 +230,6 @@ def process(policy, data_loader, device, optimizer=None, tripartite=False):
     n_samples_processed = 0
     with torch.set_grad_enabled(optimizer is not None):
         for batch in data_loader:
-            #print("QwQ")
             batch = batch.to(device)
             # Compute the logits (i.e. pre-softmax activations) according to the policy on the concatenated graphs
             if not tripartite:
@@ -274,19 +270,8 @@ def process(policy, data_loader, device, optimizer=None, tripartite=False):
                 loss_select = (set_c - len(new_idx_train) / n) ** 2
             else:
                 loss_select = 0
-            #print(batch.constraint_features)
-            #print(batch.edge_index)
-            #print(batch.edge_attr)
-            #print(batch.variable_features)
-            # Index the results by the candidates, and split and pad them
-            # logits = pad_tensor(logits[batch.candidates], batch.nb_candidates)
-            # Compute the usual cross-entropy classification loss
-            #loss = F.binary_cross_entropy(logits, batch.assignment)
+                
             loss_func = torch.nn.MSELoss()
-            #print(logits)
-            #print(logits)
-            #print(batch.assignment)
-            #print(logits)
             loss = loss_func(logits[new_idx_train], batch.assignment[new_idx_train]) + loss_select
             
             
@@ -297,13 +282,13 @@ def process(policy, data_loader, device, optimizer=None, tripartite=False):
 
 
             mean_loss += loss.item() * batch.num_graphs
-            # mean_acc += accuracy * batch.num_graphs
             n_samples_processed += batch.num_graphs
 
     mean_loss /= n_samples_processed
-    # mean_acc /= n_samples_processed
     return mean_loss
 
+# function to read the *.lp file and return the basic information of the instance and the encoded bipartite graph features
+# random_feature is true when encoding the instance into a graph with random features
 def get_a_new2(instance, random_feature = False):
     model = gp.read(instance)
     value_to_num = {}
@@ -335,7 +320,6 @@ def get_a_new2(instance, random_feature = False):
         
         constraint.append(cnstr.RHS)
 
-
         now_site = []
         now_value = []
         row = model.getRow(cnstr)
@@ -366,7 +350,6 @@ def get_a_new2(instance, random_feature = False):
 
     #1 minimize, -1 maximize
     obj_type = model.ModelSense
-    
     
     variable_features = []
     constraint_features = []
@@ -413,6 +396,8 @@ def get_a_new2(instance, random_feature = False):
     return constraint_features, edge_indices, edge_features, variable_features, num_to_value, n
 
 
+# function to read the *.lp file and return the basic information of the instance and the encoded tripartite graph features
+# random_feature is true when encoding the instance into a graph with random features
 def get_a_new3(instance, random_feature = False):
     model = gp.read(instance)
     value_to_num = {}
@@ -443,7 +428,6 @@ def get_a_new3(instance, random_feature = False):
             constraint_type.append(3) 
         
         constraint.append(cnstr.RHS)
-
 
         now_site = []
         now_value = []
@@ -476,7 +460,6 @@ def get_a_new3(instance, random_feature = False):
     #1 minimize, -1 maximize
     obj_type = model.ModelSense
     
-    
     edge_obj_var = [[0] * n, [i for i in range(n)]]
     edge_obj_con = [[0] * m, [i for i in range(m)]]
     obj_variable_val = []
@@ -502,28 +485,6 @@ def get_a_new3(instance, random_feature = False):
     for i in range(m):
         obj_constraint_val.append([constraint[i]])
         
- #   tmp_coefficient = [abs(_) for _ in coefficient if _ != 0]
- #   tmp_coefficient = sorted(tmp_coefficient)
- #   threshold = tmp_coefficient[int(len(tmp_coefficient) * 0.5)]
-
-    # for i in range(n):
-    #     tmp = []
-    #     coef = coefficient[i]
-    #     if coef != 0:
-    #         tmp.append(obj_type)
-    #         tmp.append(1 if coef > 0 else -1)
-    #         tmp.append(1 if abs(coef) > threshold else 0)
-    #         if random_feature:
-    #             tmp.append(random.random())
-    #         obj_features.append(tmp)
-    #         obj_num.append(i)
-            
-            
-    # obj_features[0] = [cnt, obj_type]
-    # if random_feature:
-    #     obj_features[0].append(random.random())
-    
-    
     for i in range(n):
         now_variable_features = []
         now_variable_features.append(coefficient[i])
@@ -564,18 +525,12 @@ def get_a_new3(instance, random_feature = False):
     return constraint_features, edge_indices, edge_features, variable_features, num_to_value, n, obj_features, obj_variable_val, obj_constraint_val, edge_obj_var, edge_obj_con
 
 
-
+# function to filter the training data 
 def c(a):
     tmp = os.path.basename(a)
     tmp = re.match(r".*_([0-9]+)", tmp)
     tmp = tmp.group(1)
-    return int(tmp) <= 3 or int(tmp) >= 23 # 20个
-
-def d(a):
-    tmp = os.path.basename(a)
-    tmp = re.match(r".*_([0-9]+)", tmp)
-    tmp = tmp.group(1)
-    return int(tmp) > 9 and int(tmp) < 16 
+    return int(tmp) <= 3 or int(tmp) >= 23 
 
 def train(
     train_data_dir: str,
@@ -599,7 +554,7 @@ def train(
         num_epochs: Number of epochs to train for.
         device: Device to use for training.
     """
-    #训练路径
+    
     train_data_path = train_data_dir
     # load samples from data_path and divide them
     DIR_BG = train_data_path + 'LP'
@@ -607,8 +562,6 @@ def train(
 
     sample_names = os.listdir(DIR_BG)
     sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if not c(name)]
-#    sample_files = [ (os.path.join(DIR_BG,name), os.path.join(DIR_SOL,name).replace('lp','pickle')) for name in sample_names if d(name)]
-    # TODO : modify !!!!
 
     train_files = sample_files[: int(0.9 * len(sample_files))]
     valid_files = sample_files[int(0.9 * len(sample_files)) :]
@@ -646,7 +599,6 @@ def parse_args():
     parser.add_argument("--num_epochs", type=int, default=30, help="Number of epochs to train for.")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to use for training.")
     return parser.parse_args()
-
 
 if __name__ == "__main__":
     args = parse_args()

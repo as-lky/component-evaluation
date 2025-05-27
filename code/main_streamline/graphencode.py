@@ -1,6 +1,5 @@
-import numpy as np
 from .mod import Component, Graphencode2Predict
-from .help.NEURALDIVING.read_lp import get_a_new2, get_a_new3
+from .help.NEURALDIVING.help import get_a_new2, get_a_new3
 
 # different methods of graphencoding as different class
 class Graphencode(Component):

@@ -1,10 +1,7 @@
-from ftplib import B_CRLF
-import numpy as np
 import torch
 import torch_geometric
 
-__all__ = ["GNNPolicy"]
-
+# the convolution structure to convey information between the nodes in a bipartite graph
 class BipartiteGraphConvolution(torch_geometric.nn.MessagePassing):
     """
     The bipartite graph convolution is already provided by pytorch geometric and we merely need
@@ -61,8 +58,8 @@ class BipartiteGraphConvolution(torch_geometric.nn.MessagePassing):
         )
         return output
 
-# 注意 三分图的卷积结构可以使用二分图的卷积结构来构成
-
+# the tripartite graph convolution structure can be constructed using the bipartite graph convolution structure
+# so there is no TripartiteGraphConvolution class
 class GNNPolicy(torch.nn.Module):
     def __init__(self, random_feature=False, tripartite=False):
         super().__init__()

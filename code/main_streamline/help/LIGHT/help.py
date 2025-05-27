@@ -1,50 +1,8 @@
-from __future__ import division
-from __future__ import print_function
-
-import os
-import re
-import glob
-import time
-import pickle
 import random
-import argparse
-import numpy as np
 import gurobipy as gp
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.autograd import Variable
 
-from .EGAT_models import SpGAT
-
-class Focal_Loss(nn.Module):
-    def __init__(self, weight, gamma=2):
-        super(Focal_Loss, self).__init__()
-        self.gamma = gamma
-        self.weight = weight  # List in tensor data format
-
-    def forward(self, preds, labels):
-        """
-        preds: logits output values
-        labels: labels
-        """
-        preds = F.softmax(preds, dim=1).to(device)
-        eps = 1e-7
-        target = self.one_hot(preds.size(1), labels).to(device)
-        ce = (-1 * torch.log(preds + eps) * target).to(device)
-        floss = (torch.pow((1 - preds), self.gamma) * ce).to(device)
-        floss = torch.mul(floss, self.weight)
-        floss = torch.sum(floss, dim=1)
-        return torch.mean(floss)
-
-    def one_hot(self, num, labels):
-        one = torch.zeros((labels.size(0), num))
-        one[range(labels.size(0)), labels] = 1
-        return one
-
-
-
+# function to read the *.lp file and return the basic information of the instance and the encoded bipartite graph features
+# random_feature is true when encoding the instance into a graph with random features
 def get_a_new2(instance, random_feature = False):
     model = gp.read(instance)
     value_to_num = {}
@@ -75,7 +33,6 @@ def get_a_new2(instance, random_feature = False):
             constraint_type.append(3) 
         
         constraint.append(cnstr.RHS)
-
 
         now_site = []
         now_value = []
@@ -108,7 +65,6 @@ def get_a_new2(instance, random_feature = False):
     #1 minimize, -1 maximize
     obj_type = model.ModelSense
     
-    
     variable_features = []
     constraint_features = []
     edge_indices = [[], []] 
@@ -117,8 +73,6 @@ def get_a_new2(instance, random_feature = False):
     for i in range(n):
         now_variable_features = []
         now_variable_features.append(coefficient[i])
-        # now_variable_features.append(0)
-        # now_variable_features.append(1)        
         if(lower_bound[i] == float("-inf")):
             now_variable_features.append(0)
             now_variable_features.append(0)
@@ -143,18 +97,6 @@ def get_a_new2(instance, random_feature = False):
         now_constraint_features = []
         now_constraint_features.append(constraint[i])
         now_constraint_features.append(constraint_type[i])
-        # if constraint_type[i] == 1:
-        #     now_constraint_features.append(1)
-        #     now_constraint_features.append(0)
-        #     now_constraint_features.append(0)
-        # elif constraint_type[i] == 2:
-        #     now_constraint_features.append(0)
-        #     now_constraint_features.append(1)
-        #     now_constraint_features.append(0)
-        # elif constraint_type[i] == 3:
-        #     now_constraint_features.append(0)
-        #     now_constraint_features.append(0)
-        #     now_constraint_features.append(1)
         if random_feature:
             now_constraint_features.append(random.random())
         constraint_features.append(now_constraint_features)
