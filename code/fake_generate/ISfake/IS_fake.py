@@ -1,7 +1,6 @@
 import os
 import sys
 
-# 添加 milp_2181.py 所在路径
 sys.path.append(os.path.join(os.path.dirname(__file__), './MIS_easy2/code'))
 
 from milp_2181 import IndependentSet
@@ -13,7 +12,7 @@ def generate_and_save_lp_files(parameters, output_dir, num_instances=1, seed=121
     for i in range(num_instances):
         print(f"\n🔹 Generating instance {i+1}/{num_instances}...")
     
-        # 每次用不同的 seed 保证生成的图不同
+        # different seeds to generate different instances
         problem = IndependentSet(parameters, seed=seed + i)
         instance = problem.generate_instance()
 
@@ -42,12 +41,12 @@ def generate_and_save_lp_files(parameters, output_dir, num_instances=1, seed=121
         objective_expr = quicksum(var_names[node] for node in graph.nodes) + quicksum(critical_vars[k] for k in critical_nodes)
         model.setObjective(objective_expr, "maximize")
 
-        # 保存 LP 文件
+        # save lp file
         lp_path = os.path.join(output_dir, f"IS_fakeeasy_instance_{i}.lp")
         model.writeProblem(lp_path)
         print(f"✅ LP file saved to: {lp_path}")
 
-        # 输出变量和约束数量
+        # number of variables and constraints
         num_vars = model.getNVars()
         num_conss = model.getNConss()
         print(f"📌 Number of variables: {num_vars}")

@@ -74,15 +74,15 @@ class NetworkResourceAllocationWithBandwidth:
 if __name__ == '__main__':
     seed = 42
     parameters = {
-        'n_channels': 100,     # 控制决策变量数量（主要是 n_channels 和 n_stations 的乘积）
-        'n_stations': 100,     # 控制决策变量数量和约束数量（每个 station 和 channel 各产生一条约束）
+        'n_channels': 100,     # n_channels * n_stations => number of varibles 
+        'n_stations': 100,     # n_channels + n_stations => number of constraints
         'demand_interval': (30, 200),
         'capacity_interval': (200, 2000),
         'fixed_cost_interval': (1200, 3000),
         'bandwidth_interval': (400, 2000),
     }
 
-    n_instances = 5  # 生成 5 个问题
+    n_instances = 5  # generate 5 instances
     output_dir = "lp_files"
 
     network_allocation = NetworkResourceAllocationWithBandwidth(parameters, seed=seed)

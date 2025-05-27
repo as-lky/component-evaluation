@@ -106,9 +106,9 @@ class SetCoverTelecomIntegration:
 if __name__ == '__main__':
     seed = 42
     parameters = {
-        'n_rows': 10000,  # 控制约束数量（每一行一个覆盖约束）
-        'n_cols': 10000,   # 控制决策变量数量（每一列一个决策变量）
-        'density': 0.0002, # 控制稀疏度，影响每个约束涉及多少变量
+        'n_rows': 10000,  # one row controls one constraint 
+        'n_cols': 10000,   # one col controls one variable
+        'density': 0.0002, # density affects how many variables are involved in each constraint
         'max_coef': 112,
         'budget': 1000000,
         'average_service_quality': 0.5,
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         'quality_threshold': 0,
     }
 
-    n_instances = 5  # 生成5个实例
+    n_instances = 5  # generate 5 instances
     output_dir = "SC_fakeeasy_instance"
 
     set_cover_telecom_problem = SetCoverTelecomIntegration(parameters, seed=seed)

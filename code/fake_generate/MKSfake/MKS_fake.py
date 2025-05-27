@@ -102,4 +102,4 @@ if __name__ == '__main__':
     for i in range(5):
         udeap = UDEAP(parameters, seed=seed * (i + 1) + seed ** i )
         instance = udeap.generate_instance()
-        udeap.write_lp(instance, filename=f"MIKSC_fakeeasy_instance_{i}.lp")
+        udeap.write_lp(instance, filename=f"MKS_fakeeasy_instance_{i}.lp")
