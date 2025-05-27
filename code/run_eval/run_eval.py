@@ -211,37 +211,37 @@ if args.task == "bigat":
     sealis = ["gurobi", "LIH", "MIH", "LNS", "NALNS", "ACP", "scip"]
 if args.task == "gurobisearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi"]
+    prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "default", "np"]
     sealis = ["gurobi"]
 if args.task == "LIHsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi"]
+    prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "default", "np"]
     sealis = ["LIH"]
 if args.task == "MIHsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi"]
+    prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "default", "np"]
     sealis = ["MIH"]
 if args.task == "LNSsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi"]
+    prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "default", "np"]
     sealis = ["LNS"]
 if args.task == "NALNSsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi"]
+    prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "default", "np"]
     sealis = ["NALNS"]
 if args.task == "ACPsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi"]
+    prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "default", "np"]
     sealis = ["ACP"]
 if args.task == "SCIPsearch":
     grlis = ["bi", "bir", "tri", "trir", "default"]
-    prelis = ["gcn", "gurobi"]
+    prelis = ["gcn", "gurobi", "scip"]
     modlis = ["sr", "nr", "default", "np"]
     sealis = ["scip"]
 
