@@ -1,16 +1,114 @@
-import argparse
 import pickle
-from pathlib import Path
-from typing import Union
-import re
-import os
 import torch
-import torch.nn.functional as F
 import torch_geometric
 import gurobipy as gp
 import random
+from gurobipy import *
+import time
 
-from .graphcnn import GNNPolicy
+def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, time_limit, obj_type, now_sol, now_col, lower_bound, upper_bound, value_type):
+    '''
+    Function Description:
+    Use Gurobi solver to solve the problem based on the provided problem instance and current solution and current selection.
+
+    Parameter description:
+    -N: The number of decision variables in the problem instance.
+    -M: The number of constraints for problem instances.
+    -K: k [i] represents the number of decision variables for the i-th constraint.
+    -Site: site [i] [j] represents which decision variable is the jth decision variable of the i-th constraint.
+    -Value: value [i] [j] represents the coefficient of the jth decision variable of the i-th constraint.
+    -Constraint: constraint [i] represents the number to the right of the i-th constraint.
+    -Constrict_type: constrict_type [i] represents the type of the i-th constraint, 1 represents<=, 2 represents>=
+    -Coefficient: coefficient [i] represents the coefficient of the i-th decision variable in the objective function.
+    -Time_imit: Maximum solution time.
+    -Obj_type: Is the problem a maximization problem or a minimization problem.
+    -Now_sol: represents the current solution.
+    -Now_col: represents the current selection of decision variables, 0 means selected, 1 means not selected.
+    '''
+    begin_time = time.time()
+    model = Model("Gurobi")
+    model.feasRelaxS(0,False,False,True)
+    site_to_new = {}
+    new_to_site = {}
+    new_num = 0
+    x = []
+    for i in range(n):
+        if(now_col[i] == 1):
+            site_to_new[i] = new_num
+            new_to_site[new_num] = i
+            new_num += 1
+            if(value_type[i] == 'B'):
+                x.append(model.addVar(lb = lower_bound[i], ub = upper_bound[i], vtype = GRB.BINARY))
+            elif(value_type[i] == 'C'):
+                x.append(model.addVar(lb = lower_bound[i], ub = upper_bound[i], vtype = GRB.CONTINUOUS))
+            else:
+                x.append(model.addVar(lb = lower_bound[i], ub = upper_bound[i], vtype = GRB.INTEGER))
+                
+    for i in range(m):
+        constr = 0
+        flag = 0
+        for j in range(k[i]):
+            if(now_col[site[i][j]] == 1):
+                constr += x[site_to_new[site[i][j]]] * value[i][j]
+                flag = 1
+            else:
+                constr += now_sol[site[i][j]] * value[i][j]
+
+        if(flag == 1):
+            if(constraint_type[i] == 1):
+                model.addConstr(constr <= constraint[i])
+            elif(constraint_type[i] == 2):
+                model.addConstr(constr >= constraint[i])
+            else:
+                model.addConstr(constr == constraint[i])
+        else:
+            if(constraint_type[i] == 1):
+                if(constr > constraint[i]):
+                    # No feasible solution
+                    print("QwQ fine")
+                    print(constr,  constraint[i])
+                    return -1, -1, -1, -1
+            else:
+                if(constr < constraint[i]):
+                    print("QwQ fine")
+                    print(constr,  constraint[i])
+                    return -1, -1, -1, -1
+    
+    coeff = 0
+    flag = 0
+    for i in range(n):
+        if(now_col[i] == 1):
+            coeff += x[site_to_new[i]] * coefficient[i]
+            flag = 1
+        else:
+            coeff += now_sol[i] * coefficient[i]
+    
+    if flag == 1:
+        if(obj_type == 'maximize'):
+            model.setObjective(coeff, GRB.MAXIMIZE)
+        else:
+            model.setObjective(coeff, GRB.MINIMIZE)
+                    
+        model.setParam('SolutionLimit', 1)
+        model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
+        model.optimize()
+
+    try:
+        new_sol = []
+        for i in range(n):
+            if(now_col[i] == 0):
+                new_sol.append(now_sol[i])
+            else:
+                if(value_type[i] == 'C'):
+                    new_sol.append(x[site_to_new[i]].X)
+                else:
+                    new_sol.append((int)(x[site_to_new[i]].X))
+        if model.NumVars == 0:
+            return 1, new_sol, coeff, 0
+        
+        return 1, new_sol, model.ObjVal, model.MIPGap
+    except:
+        return -1, -1, -1, -1
 
 # bipartite graph data
 class BipartiteNodeData(torch_geometric.data.Data):

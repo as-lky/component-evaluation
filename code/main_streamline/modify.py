@@ -1,8 +1,6 @@
 import torch
-from typing import Type, cast
 from .mod import Component, Predict2Modify, Modify2Search, Cantsol, Cansol2M, Cansol2S, INFEASIBLEERROR
-from .help.NEURALDIVING.read_lp import get_a_new2
-from .help.NEURALDIVING.test import Gurobi_solver 
+from .help.NEURALDIVING.help import get_a_new2, Gurobi_solver
 from pyscipopt import SCIP_PARAMSETTING
 import re
 import numpy as np
@@ -10,12 +8,16 @@ import gurobipy as gp
 import pyscipopt as scp        
 import os
 
-
+# write any into file
 def log(any, txt):
     with open(txt, 'a')as f:
         f.writelines(str(any))
         f.writelines('\n')
 
+# different methods of repairing as different class
+# Np means adaptive neighborhood search
+# Sr means adaptive threshold repair
+# Nr means neighborhood repair
 class Modify(Component):
     def __new__(cls, component, device, taskname, instance, sequence_name, *args, **kwargs):
         if component == "np":
@@ -36,26 +38,25 @@ class Modify(Component):
             
     def work(self, input: Predict2Modify) -> Modify2Search:...
         
-class Np(Modify): # build a new problem based on the prediction
+class Np(Modify):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
         
         if taskname == "MVC": 
-            dhp = (400, 5, 1)
+            dhp = (400, 50, 1000)
         elif taskname == "IS":
-            dhp = (300, 300, 15) 
-        elif taskname == "MIKSC":
-            dhp = (0, 600, 5) 
+            dhp = (300, 300, 1500) 
+        elif taskname == "MKS":
+            dhp = (0, 600, 500) 
         elif taskname == "SC":
-            dhp = (400, 0, 10)
+            dhp = (400, 0, 1000)
         else :
             dhp = (0, 0, 0)
         
         self.k0 = kwargs.get("k0", dhp[0])
         self.k1 = kwargs.get("k1", dhp[1])
         self.delta = kwargs.get("delta", dhp[2])
-        # tackle parameters    
 
     def work(self, input: Cantsol) -> Cansol2S:
         self.begin()
@@ -92,23 +93,17 @@ class Np(Modify): # build a new problem based on the prediction
         m1 = scp.Model()
         m1.setParam('limits/time', self.time_limit)
         m1.setIntParam("limits/solutions", 1)
-        #m1.hideOutput(True)
-        
         m1.setParam('randomization/randomseedshift', 0)
         m1.setParam('randomization/lpseed', 0)
         m1.setParam('randomization/permutationseed', 0)
         m1.setHeuristics(SCIP_PARAMSETTING.AGGRESSIVE)#MIP focus
 
         instance_name = os.path.basename(self.instance)
-        
         sn = ""
         for _ in self.sequence_name:
             sn += _ + "_"
-
         tmp = re.match(r"(.*)\.lp", instance_name)
         tmp = tmp.group(1)
-
-        
         log_path = f'./logs/work/{self.taskname}/{sn}/{tmp}.log'
         m1.setLogfile(log_path)
         m1.readProblem(self.instance)
@@ -148,22 +143,16 @@ class Np(Modify): # build a new problem based on the prediction
         for var in m1.getVars():
             cansol[var.name] = m1.getVal(var)
         
-        
         self.end()
         return Cansol2S(m1.getObjVal(), cansol, m1.getGap())
-        
-        
 
-class Sr(Modify): # build a new problem based on the prediction
+class Sr(Modify):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
-        
-        # tackle parameters    
 
     def work(self, input: Cantsol) -> Cansol2S:
         self.begin()
-        model = gp.read(self.instance)
         constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value=get_a_new2(self.instance)
 
         time_limit = self.time_limit
@@ -194,7 +183,6 @@ class Sr(Modify): # build a new problem based on the prediction
                     choose.append(1)
                 else:
                     choose.append(0)
-            #print(0.1 * turn, sum(choose) / n)
             flag, sol, obj, gap = Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, time_limit, obj_type, now_sol, choose, lower_bound, upper_bound, value_type)
             if(flag == 1):
                 add_flag = 1
@@ -205,11 +193,9 @@ class Sr(Modify): # build a new problem based on the prediction
             sn = ""
             for _ in self.sequence_name:
                 sn += _ + "_"
-                
             instance_name = os.path.basename(self.instance)
             tmp = re.match(r"(.*)\.lp", instance_name)
             tmp = tmp.group(1)
-                
             des = f'./logs/work/{self.taskname}/{sn}/{tmp}_result.txt'
             log("ERROR", des)
             log("MODIFY INFEASIBLE", des)
@@ -223,12 +209,10 @@ class Sr(Modify): # build a new problem based on the prediction
         return Cansol2S(result_pair[1], cansol, result_pair[2])
         
         
-class Nr(Modify): # build a new problem based on the prediction
+class Nr(Modify):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
         self.time_limit = kwargs.get("time_limit") or 10
-        
-        # tackle parameters    
 
     def work(self, input: Cantsol) -> Cansol2S:
         self.begin()
@@ -236,7 +220,7 @@ class Nr(Modify): # build a new problem based on the prediction
 
         color = np.zeros(n) # 1: discard
         
-        
+        # transform now_sol to numpy
         if type(input.logits) == list:
             now_sol = np.array(input.logits)
         else:
@@ -247,7 +231,6 @@ class Nr(Modify): # build a new problem based on the prediction
                 now_sol[i] = int(now_sol[i] + 0.5)
             now_sol[i] = min(now_sol[i], upper_bound[i])
             now_sol[i] = max(now_sol[i], lower_bound[i])
- 
  
         F = 0
         result_pair = (0, 0, 0)
@@ -306,12 +289,10 @@ class Nr(Modify): # build a new problem based on the prediction
         self.end()
         return Cansol2S(result_pair[1], cansol, result_pair[2])
         
-        
-        
-class Default(Modify): # build a new problem based on the prediction
+# Do nothing, just convey the feasible solution
+class Default(Modify):
     def __init__(self, component, device, taskname, instance, sequence_name, *args, **kwargs):
         super().__init__(component, device, taskname, instance, sequence_name)
-        # tackle parameters    
 
     def work(self, input: Cansol2M) -> Cansol2S:
         self.begin()

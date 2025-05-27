@@ -1,9 +1,9 @@
 import os
 import re
 from .mod import Component, Preprocess2Graphencode
-from typing import Type
 
-class Preprocess(Component): # no usage for now
+# preprocess layer creates the directory structure for later work
+class Preprocess(Component):
     def __init__(self, device, taskname, instance, sequence_name):
         super().__init__(device, taskname, instance, sequence_name)
     
@@ -14,7 +14,6 @@ class Preprocess(Component): # no usage for now
         instance_name = os.path.basename(self.instance)
         tmp = re.match(r"(.*)_[0-9]+\.lp", instance_name)
         tmp = tmp.group(1)
-  #      sn = str(self.sequence_name)
         sn = ""
         for _ in self.sequence_name:
             sn += _ + "_"
