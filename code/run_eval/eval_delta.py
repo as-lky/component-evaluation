@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser(description="receive evaluate_delta instruction
 parser.add_argument("--taskname", required=True, choices=["MVC", "IS", "SC", "MKS"], help="taskname")
 args = parser.parse_args()
 
-# get the hypervolume score of some algorithms' perform vectors on a constant instance refering to (1, 1, ..., 1)
+# get the hypervolume score of some algorithms' perform vectors on a constant instance referring to (1, 1, ..., 1)
 def calc(lis):
     # lis is a list in which each element is a list, corresponding to a point vector meaning an algorithm's performance on an instance
     # each dim of the vector is a float number in [0, 1)
@@ -38,6 +38,7 @@ def calc(lis):
 
 # return true if a dominates b
 def domi(a, b):
+    # a and b are two lists of float numbers, each representing a point vector
     l = len(a)
     for i in range(l):
         if a[i] > b[i]:
