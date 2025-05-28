@@ -4,3 +4,4 @@
 *.lp
 *.pickle
 *.txt
+!requirements.txt
