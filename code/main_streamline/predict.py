@@ -195,10 +195,6 @@ class GCN(Predict):
         instance_name = instance_name.group(1)
         
         pk = os.path.join(W, instance_name) + '.pickle'
-
-        S = os.path.dirname(self.instance)
-        S = os.path.dirname(S)
-        S = os.path.join(S, 'Pickle')
     
         # if the pickle file(containing the features) does not exist, then generate the features and save them
         if not os.path.exists(pk):
