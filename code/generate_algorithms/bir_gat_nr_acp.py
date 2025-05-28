@@ -3,19 +3,12 @@ import os
 import re
 import gurobipy as gp
 import numpy as np
-import pyscipopt
-import subprocess
-import pickle
 import random
-import json
-import cplex
 import argparse
 import torch.nn as nn
 import torch.nn.functional as F
 import time
 from gurobipy import *
-from typing import Type, cast
-import torch_geometric
 
 parser = argparse.ArgumentParser(description="receive select instruction from higher level")
 parser.add_argument("--device", required=True, choices=["cpu", "cuda", "cuda:2", "cuda:1", "cuda:3"], help="cpu or cuda")
@@ -82,67 +75,20 @@ class SpGraphAttentionLayer(nn.Module):
         self.special_spmm = SpecialSpmm()
 
     def forward(self, node, edge, edge_feature):
-        dv = device if node.is_cuda else 'cpu'
-        #dv = 'cpu'
+        dv = 'cuda:2' if node.is_cuda else 'cpu'
         N = node.size()[0]
         edge = edge.t()
         edge = torch.nan_to_num(edge, nan=0.0, posinf=1e10, neginf=-1e10)
         assert not torch.isnan(edge).any()
-        #print(
 
         h = torch.mm(node, self.W)
-#        print("SSSSSSSSSSSSSS", node.shape, node)
-#        print("WWWWWWWWWWWWWWW", self.W.shape, self.W)
-#        print("!!!!!!!!!!!!!!!!", h.shape, h)
-#        we = torch.isnan(h)
-#        if we.any():
-#            print(torch.nonzero(we))
-#            print(h[we])
-#        print("_______________________________________________")
-
-        # TODO
-        # sum = 0
-        # for i in range(node.shape[1]):
-        #     if i == 257:
-        #         print(node[1][i], self.W[i][0])
-        #     sum = sum + node[1][i] * self.W[i][0]
-        #     print(i, sum)
-            
-        # h: N x out
         h = torch.nan_to_num(h, nan=0.0, posinf=1e10, neginf=-1e10)
         
         assert not torch.isnan(h).any()
 
-        # Self-attention on the nodes - Shared attention mechanism
-        #print(torch.cat((h[edge[0, :], :], h[edge[1, :], :]), dim=1))
-        #print(edge_feature)
         edge_h = torch.cat((torch.cat((h[edge[0, :], :], h[edge[1, :], :]), dim=1), edge_feature), dim = 1).t()
         edge_h = torch.nan_to_num(edge_h, nan=0.0, posinf=1e10, neginf=-1e10)
         assert not torch.isnan(edge_h).any()
-        # edge: (2*D + 1) x E
-
-        # TODO
-        # tmp = edge_h
-        # if torch.isinf(tmp).any() or torch.isnan(tmp).any():
-        #     print("edge_hLKY")
-        #     wee = torch.isnan(tmp)
-        #     print(torch.nonzero(wee))
-        #     print("LKY")
-        #     wee = torch.isinf(tmp)
-        #     print(torch.nonzero(wee))
-
-        # tmp = self.a.mm(edge_h).squeeze()
-        # tmp = -self.leakyrelu(tmp)
-        # print("TMPTMPTMPT")
-        # print(tmp.max().item())
-        # print(tmp.min().item())
-        # if torch.isinf(tmp).any() or torch.isnan(tmp).any():
-        #     print("tmpLKY")
-        #     wee = torch.isnan(tmp)
-        #     print(torch.nonzero(wee))
-        #     print("LKY")
-        #     wee = torch.isinf(tmp)
-        #     print(torch.nonzero(wee))
 
         edge_e = torch.exp(-self.leakyrelu(self.a.mm(edge_h).squeeze()))
         tmp = edge_e
@@ -154,16 +100,13 @@ class SpGraphAttentionLayer(nn.Module):
         e_rowsum = self.special_spmm(edge, edge_e, torch.Size([N, N]), torch.ones(size=(N,1), device=dv))
         # e_rowsum: N x 1   
 
-        #edge_e = self.dropout(edge_e)
         # edge_e: E
         
         h_prime = self.special_spmm(edge, edge_e, torch.Size([N, N]), h)
         h_prime = torch.nan_to_num(h_prime, nan=0.0, posinf=1e10, neginf=-1e10)
         
-        #
         assert not torch.isnan(h_prime).any()
         # h_prime: N x out
-
 
         h_prime = h_prime.div(e_rowsum)
         h_prime = torch.where(torch.isnan(h_prime), torch.full_like(h_prime, 0), h_prime)
@@ -172,8 +115,6 @@ class SpGraphAttentionLayer(nn.Module):
         h_prime = torch.nan_to_num(h_prime, nan=0.0, posinf=1e10, neginf=-1e10)
         
         assert not torch.isnan(h_prime).any()
-
-        #print(h.size(), h_prime.size())
 
         if self.concat:
             # if this layer is not last layer,
@@ -184,8 +125,6 @@ class SpGraphAttentionLayer(nn.Module):
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' + str(self.node_features) + ' -> ' + str(self.out_features) + ')'
-
-
 
 class SpGAT(nn.Module):
     def __init__(self, nfeat, nhid, nclass, dropout, alpha, nheads):
@@ -206,7 +145,6 @@ class SpGAT(nn.Module):
         embed_size = 64
         self.input_module = torch.nn.Sequential(
             torch.nn.Linear(nfeat, embed_size),
-            #torch.nn.LogSoftmax(dim = 0),
         )
         self.attentions_u_to_v = [SpGraphAttentionLayer(embed_size,
                                                  nhid, 
@@ -235,26 +173,19 @@ class SpGAT(nn.Module):
                                                concat=False)
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(embed_size, embed_size),
-            #torch.nn.LogSoftmax(dim = 0),
             torch.nn.ReLU(),
             torch.nn.Linear(embed_size, embed_size),
-            #torch.nn.LogSoftmax(dim = 0),
             torch.nn.ReLU(),
             torch.nn.Linear(embed_size, nclass, bias=False),
-            #torch.nn.Sigmoid()
         )
         
-        # self.select_module = torch.nn.Sequential(
-        #     torch.nn.Linear(embed_size, embed_size),
-        # #torch.nn.LogSoftmax(dim = 0),
-        #     torch.nn.ReLU(),
-        #     torch.nn.Linear(embed_size, embed_size),
-        #     #torch.nn.LogSoftmax(dim = 0),
-        #     torch.nn.ReLU(),
-        #     torch.nn.Linear(embed_size, nclass, bias=False),
-        #     #torch.nn.Sigmoid()
-        # )
-        self.softmax = nn.Softmax(dim = 1)
+        self.select_module = torch.nn.Sequential(
+            torch.nn.Linear(embed_size, embed_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(embed_size, embed_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(embed_size, nclass, bias=False),
+        )
 
     def forward(self, x, edgeA, edgeB, edge_feat):
         '''
@@ -268,53 +199,25 @@ class SpGAT(nn.Module):
 
         Return: The result after the forward propagation.
         '''
-        #print(x)
         x = self.input_module(x)
             
-        #x = F.dropout(x, self.dropout, training=self.training)
-        #print(x)
         new_edge = torch.cat([att(x, edgeA, edge_feat)[1] for att in self.attentions_u_to_v], dim=1)
 
-        # TODO
-        # cnt = 0
-        # for att in self.attentions_u_to_v:
-        #     cnt += 1 
-        #     print("CNT: ", cnt)
-        #     if cnt != 5:
-        #         continue
-        #     tmp = att(x, edgeA, edge_feat)[0]
-        #     if torch.isinf(tmp).any() or torch.isnan(tmp).any():
-        #         print(cnt)
-        #         print("NANANANANANANANA")
-        #         wee = torch.isnan(tmp)
-        #         print(torch.nonzero(wee))
-        #         print("INFINFINFINFINFINFINFINFIN")
-        #         wee = torch.isinf(tmp)
-        #         print(torch.nonzero(wee))
-
         x = torch.cat([att(x, edgeA, edge_feat)[0] for att in self.attentions_u_to_v], dim=1)
-#        if torch.isinf(x).any():
-#            wee = torch.isinf(x)
-#            print(torch.nonzero(wee))
-#        print("INFINFINFINFINFINFINFINFINFINFINFINFINFINFINFIN")
         x = self.out_att_u_to_v(x, edgeA, edge_feat)
         new_edge = torch.mean(new_edge, dim = 1).reshape(new_edge.size()[0], 1)
-        #x = self.softmax(x)
         new_edge_ = torch.cat([att(x, edgeB, new_edge)[1] for att in self.attentions_v_to_u], dim=1)
         x = torch.cat([att(x, edgeB, new_edge)[0] for att in self.attentions_v_to_u], dim=1)
         x = self.out_att_v_to_u(x, edgeB, new_edge)
         new_edge_ = torch.mean(new_edge_, dim = 1).reshape(new_edge_.size()[0], 1)
 
-#        y = self.select_module(x)
+        y = self.select_module(x)
         x = self.output_module(x)
-        x = self.softmax(x)
 
-#        return x.squeeze(-1), y.squeeze(-1), new_edge_
-#        return x.squeeze(-1), new_edge_
-        print(x.shape)
-        return x, new_edge_
+        return x.squeeze(-1), y.squeeze(-1), new_edge_
 
-
+# function to read the *.lp file and return the basic information of the instance and the encoded bipartite graph features
+# random_feature is true when encoding the instance into a graph with random features
 def get_a_new2(instance, random_feature = False):
     model = gp.read(instance)
     value_to_num = {}
@@ -346,7 +249,6 @@ def get_a_new2(instance, random_feature = False):
         
         constraint.append(cnstr.RHS)
 
-
         now_site = []
         now_value = []
         row = model.getRow(cnstr)
@@ -378,7 +280,6 @@ def get_a_new2(instance, random_feature = False):
     #1 minimize, -1 maximize
     obj_type = model.ModelSense
     
-    
     variable_features = []
     constraint_features = []
     edge_indices = [[], []] 
@@ -387,20 +288,18 @@ def get_a_new2(instance, random_feature = False):
     for i in range(n):
         now_variable_features = []
         now_variable_features.append(coefficient[i])
-        now_variable_features.append(0)
-        now_variable_features.append(1)        
-        # if(lower_bound[i] == float("-inf")):
-        #     now_variable_features.append(0)
-        #     now_variable_features.append(0)
-        # else:
-        #     now_variable_features.append(1)
-        #     now_variable_features.append(lower_bound[i])
-        # if(upper_bound[i] == float("inf")):
-        #     now_variable_features.append(0)
-        #     now_variable_features.append(0)
-        # else:
-        #     now_variable_features.append(1)
-        #     now_variable_features.append(upper_bound[i])
+        if(lower_bound[i] == float("-inf")):
+            now_variable_features.append(0)
+            now_variable_features.append(0)
+        else:
+            now_variable_features.append(1)
+            now_variable_features.append(lower_bound[i])
+        if(upper_bound[i] == float("inf")):
+            now_variable_features.append(0)
+            now_variable_features.append(0)
+        else:
+            now_variable_features.append(1)
+            now_variable_features.append(upper_bound[i])
         if(value_type[i] == 'C'):
             now_variable_features.append(0)
         else:
@@ -412,19 +311,7 @@ def get_a_new2(instance, random_feature = False):
     for i in range(m):
         now_constraint_features = []
         now_constraint_features.append(constraint[i])
-#        now_constraint_features.append(constraint_type[i])
-        if constraint_type[i] == 1:
-            now_constraint_features.append(1)
-            now_constraint_features.append(0)
-            now_constraint_features.append(0)
-        elif constraint_type[i] == 2:
-            now_constraint_features.append(0)
-            now_constraint_features.append(1)
-            now_constraint_features.append(0)
-        elif constraint_type[i] == 3:
-            now_constraint_features.append(0)
-            now_constraint_features.append(0)
-            now_constraint_features.append(1)
+        now_constraint_features.append(constraint_type[i])
         if random_feature:
             now_constraint_features.append(random.random())
         constraint_features.append(now_constraint_features)
@@ -438,6 +325,8 @@ def get_a_new2(instance, random_feature = False):
     return constraint_features, edge_indices, edge_features, variable_features, num_to_value, n
 
 
+# function to read the *.lp file and return the basic information(compared with get_a_new2 the information is more detailed) of the instance and the encoded bipartite graph features
+# random_feature is true when encoding the instance into a graph with random features
 def get_a_new22(instance, random_feature = False):
     model = gp.read(instance)
     value_to_num = {}
@@ -469,7 +358,6 @@ def get_a_new22(instance, random_feature = False):
         
         constraint.append(cnstr.RHS)
 
-
         now_site = []
         now_value = []
         row = model.getRow(cnstr)
@@ -500,7 +388,6 @@ def get_a_new22(instance, random_feature = False):
 
     #1 minimize, -1 maximize
     obj_type = model.ModelSense
-    
     
     variable_features = []
     constraint_features = []
@@ -546,7 +433,7 @@ def get_a_new22(instance, random_feature = False):
 
     return constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value
 
-
+# using GAT to predict the solution of the instance
 def predict():
     print("GAT predict...")
     instance_name = os.path.basename(instance)
@@ -584,8 +471,6 @@ def predict():
 
     features = variable_features + constraint_features
     features = torch.as_tensor(features)
-
-    idx_test = torch.tensor(range(n))
 
     ##Predict
     #FENNEL
@@ -695,8 +580,7 @@ def predict():
     path_model = model_path
     model = SpGAT(nfeat=features.shape[1],    # Feature dimension
                 nhid=64,                    # Feature dimension of each hidden layer
-    #                    nclass=1,                   # Number of classes
-                nclass=2,                   # Number of classes 
+                nclass=1,                   # Number of classes
                 dropout=0.5,                # Dropout
                 nheads=6,                   # Number of heads
                 alpha=0.2)                  # LeakyReLU alpha coefficient
@@ -706,70 +590,48 @@ def predict():
 
     def compute_test(features, edgeA, edgeB, edge_features):
         model.eval()
-    #            output, select, new_edge_feat = model(features, edgeA, edgeB, edge_features)
-        output, new_edge_feat = model(features, edgeA, edgeB, edge_features)
-        #loss_test = F.nll_loss(output[idx_test], labels[idx_test])
-        #acc_test = accuracy(output[idx_test], labels[idx_test])
-        #print("Test set results:",
-        #      "loss= {:.4f}".format(loss_test.data.item()))
-    #            return(output, select, new_edge_feat)
-        return (output, new_edge_feat)
-
+        output, select, new_edge_feat = model(features, edgeA, edgeB, edge_features)
+        return(output, select, new_edge_feat)
 
     predict = [0] * (n + m)
     select = [0] * (n + m)
     new_edge_feat = [0] * edge_num
     for i in range(partition_num):
-    #            now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
-        now_predict, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
-
+        now_predict, now_select, now_new_edge_feat = compute_test(torch.tensor(np.array([item.cpu().detach().numpy() for item in color_features[i]])).cuda().float().to(device), torch.as_tensor(color_edgeA[i]).to(device), torch.as_tensor(color_edgeB[i]).to(device), torch.as_tensor(color_edge_features[i]).float().to(device))
         for j in range(len(color_site_to_num[i])):
             if(color_site_to_num[i][j] < n):
-                tmp = now_predict[j].cpu().detach().numpy()
-                predict[color_site_to_num[i][j]] = 1 if tmp[1] > 0.5 else 0
-                select[color_site_to_num[i][j]] = tmp[predict[color_site_to_num[i][j]]]
-    #                    select[color_site_to_num[i][j]] = now_select[j].cpu().detach().numpy()
+                predict[color_site_to_num[i][j]] = now_predict[j].cpu().detach().numpy()
+                select[color_site_to_num[i][j]] = now_select[j].cpu().detach().numpy()
         for j in range(len(color_edge_to_num[i])):
             new_edge_feat[color_edge_to_num[i][j]] = now_new_edge_feat[j].cpu().detach().numpy()
 
     return predict, select
 
-def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, time_limit, obj_type, now_sol, now_col, constr_flag, lower_bound, upper_bound, value_type):
+def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, time_limit, obj_type, now_sol, now_col, lower_bound, upper_bound, value_type):
     '''
-    Function Explanation:
-    This function solves a problem instance using the SCIP solver based on the provided parameters.
+    Function Description:
+    Use Gurobi solver to solve the problem based on the provided problem instance and current solution and current selection.
 
-    Parameter Explanation:
-    - n: The number of decision variables in the problem instance.
-    - m: The number of constraints in the problem instance.
-    - k: k[i] indicates the number of decision variables in the i-th constraint.
-    - site: site[i][j] indicates which decision variable the j-th decision variable in the i-th constraint is.
-    - value: value[i][j] represents the coefficient of the j-th decision variable in the i-th constraint.
-    - constraint: constraint[i] represents the right-hand side value of the i-th constraint.
-    - constraint_type: constraint_type[i] indicates the type of the i-th constraint, where 1 represents <= and 2 represents >=.
-    - coefficient: coefficient[i] indicates the coefficient of the i-th decision variable in the objective function.
-    - time_limit: The maximum solving time.
-    - obj_type: Specifies whether the problem is a maximization or minimization problem.
-    - now_sol: The current solution.
-    - now_col: Dimensionality reduction flags for decision variables.
-    - constr_flag: Dimensionality reduction flags for constraints.
-    - lower_bound: Lower bounds for decision variables.
-    - upper_bound: Upper bounds for decision variables.
-    - value_type: The type of decision variables (e.g., integer or continuous variables).
+    Parameter description:
+    -N: The number of decision variables in the problem instance.
+    -M: The number of constraints for problem instances.
+    -K: k [i] represents the number of decision variables for the i-th constraint.
+    -Site: site [i] [j] represents which decision variable is the jth decision variable of the i-th constraint.
+    -Value: value [i] [j] represents the coefficient of the jth decision variable of the i-th constraint.
+    -Constraint: constraint [i] represents the number to the right of the i-th constraint.
+    -Constrict_type: constrict_type [i] represents the type of the i-th constraint, 1 represents<=, 2 represents>=
+    -Coefficient: coefficient [i] represents the coefficient of the i-th decision variable in the objective function.
+    -Time_imit: Maximum solution time.
+    -Obj_type: Is the problem a maximization problem or a minimization problem.
+    -Now_sol: represents the current solution.
+    -Now_col: represents the current selection of decision variables, 0 means selected, 1 means not selected.
     '''
-    # Get the start time
     begin_time = time.time()
-
-    # Define the solver model
     model = Model("Gurobi")
     model.feasRelaxS(0,False,False,True)
-
-    # Set up variable mappings
     site_to_new = {}
     new_to_site = {}
     new_num = 0
-
-    # Define new_num decision variables x[]
     x = []
     for i in range(n):
         if(now_col[i] == 1):
@@ -782,23 +644,8 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                 x.append(model.addVar(lb = lower_bound[i], ub = upper_bound[i], vtype = GRB.CONTINUOUS))
             else:
                 x.append(model.addVar(lb = lower_bound[i], ub = upper_bound[i], vtype = GRB.INTEGER))
-
-    # Set the objective function and optimization goal (maximize/minimize)
-    coeff = 0
-    for i in range(n):
-        if(now_col[i] == 1):
-            coeff += x[site_to_new[i]] * coefficient[i]
-        else:
-            coeff += now_sol[i] * coefficient[i]
-    if(obj_type == 'maximize'):
-        model.setObjective(coeff, GRB.MAXIMIZE)
-    else:
-        model.setObjective(coeff, GRB.MINIMIZE)
-    
-    # Add m constraints
+                
     for i in range(m):
-        if(constr_flag[i] == 0):
-            continue
         constr = 0
         flag = 0
         for j in range(k[i]):
@@ -811,26 +658,42 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
         if(flag == 1):
             if(constraint_type[i] == 1):
                 model.addConstr(constr <= constraint[i])
-            else:
+            elif(constraint_type[i] == 2):
                 model.addConstr(constr >= constraint[i])
+            else:
+                model.addConstr(constr == constraint[i])
         else:
             if(constraint_type[i] == 1):
                 if(constr > constraint[i]):
-                    print("QwQ")
+                    # No feasible solution
+                    print("QwQ fine")
                     print(constr,  constraint[i])
-                    #print(now_col)
+                    return -1, -1, -1, -1
             else:
                 if(constr < constraint[i]):
-                    print("QwQ")
+                    print("QwQ fine")
                     print(constr,  constraint[i])
-                    #print(now_col)
+                    return -1, -1, -1, -1
     
-    # Set the maximum solving time
-    model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
+    coeff = 0
+    flag = 0
+    for i in range(n):
+        if(now_col[i] == 1):
+            coeff += x[site_to_new[i]] * coefficient[i]
+            flag = 1
+        else:
+            coeff += now_sol[i] * coefficient[i]
     
-    # Optimize the solution
-    model.optimize()
-    #print(time.time() - begin_time)
+    if flag == 1:
+        if(obj_type == 'maximize'):
+            model.setObjective(coeff, GRB.MAXIMIZE)
+        else:
+            model.setObjective(coeff, GRB.MINIMIZE)
+                    
+        model.setParam('SolutionLimit', 1)
+        model.setParam('TimeLimit', max(time_limit - (time.time() - begin_time), 0))
+        model.optimize()
+
     try:
         new_sol = []
         for i in range(n):
@@ -841,11 +704,14 @@ def Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient
                     new_sol.append(x[site_to_new[i]].X)
                 else:
                     new_sol.append((int)(x[site_to_new[i]].X))
-            
-        return new_sol, model.ObjVal
+        if model.NumVars == 0:
+            return 1, new_sol, coeff, 0
+        
+        return 1, new_sol, model.ObjVal, model.MIPGap
     except:
-        return -1, -1
+        return -1, -1, -1, -1
 
+# using Nr strategy to repair the infeasible solution
 def repair(logits, select, time_limit):
     print("Nr repair...")
     constraint_features, edge_indices, edge_features, variable_features, n, m, k, site, value, constraint, constraint_type, coefficient, lower_bound, upper_bound, value_type, obj_type, num_to_value=get_a_new2(instance)
@@ -862,7 +728,6 @@ def repair(logits, select, time_limit):
             now_sol[i] = int(now_sol[i] + 0.5)
         now_sol[i] = min(now_sol[i], upper_bound[i])
         now_sol[i] = max(now_sol[i], lower_bound[i])
-
 
     F = 0
     result_pair = (0, 0, 0)
@@ -901,7 +766,6 @@ def repair(logits, select, time_limit):
             result_pair = (sol, obj, gap)
             F = 1
             break
-    
     
     cansol = {}
     for i in range(n):
@@ -977,7 +841,7 @@ def split_problem(lp_file):
         obj_type = 'minimize'
     return n, m, k, site, value, constraint, constraint_type, coefficient, obj_type, lower_bound, upper_bound, value_type, value_to_num
 
-
+# using ACP strategy to search better solutions
 def search(objval, cansol, gap, time_limit, block, max_turn_ratio, result_list):
     print("ACP search...")
     #Set KK as the initial number of blocks and PP as the selected number of blocks to optimize after dividing the constraints into KK blocks
@@ -1004,7 +868,7 @@ def search(objval, cansol, gap, time_limit, block, max_turn_ratio, result_list):
     for var in tmp.getVars():
         ansx.append(input.cansol[var.VarName])
         
-    print(f"初始解目标值为：{ans}")
+    print(f"Initial objective: {ans}")
     
     #Constraint block labels, where cons_color[i] represents which block the i-th constraint belongs to
     cons_color = np.zeros(m, int)
@@ -1039,8 +903,8 @@ def search(objval, cansol, gap, time_limit, block, max_turn_ratio, result_list):
                 for j in range(k[i]):
                     color[site[i][j]] = 1
                     color_num += 1
-        #site_to_color[i]represents which decision variable is the i-th decision variable in this block
-        #color_to_site[i]represents which decision variable is mapped to the i-th decision variable in this block
+        #site_to_color[i] represents which decision variable is the i-th decision variable in this block
+        #color_to_site[i] represents which decision variable is mapped to the i-th decision variable in this block
         #vertex_color_num represents the number of decision variables in this block currently
         site_to_color = np.zeros(n, int)
         color_to_site = np.zeros(n, int)
@@ -1100,11 +964,10 @@ def search(objval, cansol, gap, time_limit, block, max_turn_ratio, result_list):
         try:
             #Calculate the current objective value
             temp = model.ObjVal + objtemp
-            print(f"当前目标值为：{temp}")
+            print(f"The current objective value is: {temp}")
             bestX = []
             for i in range(vertex_color_num):
                 bestX.append(x[i].X)
-            #print(bestX)
 
             if(obj_type == 'maximize'):
                 #Update the current best solution and best ans
@@ -1147,7 +1010,6 @@ def search(objval, cansol, gap, time_limit, block, max_turn_ratio, result_list):
             print(now_sol[-1], now_time[-1])
                                 
             if(model.MIPGap >= 0.0001):
-#                if(model.MIPGap != 0):
                 if(KK == 2 and PP > 1):
                     KK -= 1
                     PP -= 1
@@ -1183,11 +1045,12 @@ def search(objval, cansol, gap, time_limit, block, max_turn_ratio, result_list):
 result_list_obj_time = []
 start_time = time.time()
 whole_time_limit = args.whole_time_limit
-    
+
+# using gat for predict(bipartite graph with random feature), Nr for repair and ACP for search
+# get the result list of objective value and time
 predict_, select = predict()
 objval, cansol, gap = repair(predict_, select, whole_time_limit - (time.time() - start_time))
 result_list_obj_time.append((time.time() - start_time, objval))    
 search(objval, cansol, gap, whole_time_limit - (time.time() - start_time), args.search_ACP_LNS_block, args.search_ACP_LNS_max_turn_ratio, result_list_obj_time)
-
 print(result_list_obj_time)
     
